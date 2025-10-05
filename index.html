@@ -7,250 +7,398 @@
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
+/* --- Body and scroll --- */
 html, body {
     height: 100%;
     margin: 0;
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    background-color: #f5f5f5;
-}
-body {
+    background-color: #f0f2f5;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    flex-direction: column;
-    padding: 20px;
-    text-align: center;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #4285f4 #e0e0e0;
 }
+
+body::-webkit-scrollbar {
+    width: 12px;
+}
+body::-webkit-scrollbar-track {
+    background: #e0e0e0;
+    margin-left: 5px; /* moves the scrollbar slightly away from content */
+    border-radius: 6px;
+}
+body::-webkit-scrollbar-thumb {
+    background-color: #4285f4;
+    border-radius: 6px;
+    border: 3px solid #e0e0e0;
+}
+
+/* --- Container --- */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 95%;
+    max-width: 900px;
+    gap: 40px;
+    padding: 20px 0;
+}
+
+/* --- Calculator Card --- */
 .calculator {
     background-color: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0px 10px 30px rgba(0,0,0,0.1);
-    width: 600px;
-    margin: auto;
+    border-radius: 20px;
+    box-shadow: 0px 15px 40px rgba(0,0,0,0.15);
+    width: 100%;
+    padding: 30px 40px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
 }
-input {
-    width: 90%;
-    font-size: 20px;
+
+.help-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #555;
+    transition: 0.2s;
+}
+.help-icon:hover { color: #222; }
+
+input[type="text"], input[type="number"] {
+    font-size: 18px;
     padding: 12px 15px;
     border: 1px solid #ccc;
     border-radius: 10px;
-    margin-bottom: 20px;
     outline: none;
     box-sizing: border-box;
+    transition: border 0.2s, box-shadow 0.2s;
 }
-input:focus {
-    border-color: #4285f4;
-    box-shadow: 0 0 5px rgba(66,133,244,0.5);
-}
+input[type="text"] { width: 100%; }
+input[type="number"] { width: 48%; }
+input:focus { border-color: #4285f4; box-shadow: 0 0 8px rgba(66,133,244,0.3); }
+
 button {
-    font-size: 18px;
-    padding: 10px 20px;
+    font-size: 16px;
+    padding: 10px 16px;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     background-color: #4285f4;
     color: white;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.1s;
     margin: 5px;
 }
-button:hover {
-    background-color: #357ae8;
+button:hover { background-color: #357ae8; transform: translateY(-2px); }
+
+/* Smaller evaluate button */
+.evaluate-button {
+    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    margin-top: 8px;
 }
-#result {
-    font-size: 22px;
-    margin-top: 20px;
-    min-height: 40px;
-    color: #222;
-    word-wrap: break-word;
-}
+
+/* Outputs */
+#result { font-size: 20px; min-height: 50px; color: #222; word-wrap: break-word; padding: 15px; border-radius: 12px; background-color: #f7f9fc; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); }
+
+#evalResult { font-size: 18px; min-height: 40px; color: #222; word-wrap: break-word; padding: 12px; border-radius: 10px; background-color: #f7f9fc; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); width: 100%; text-align: center; }
+
 #graph {
     width: 100%;
+    max-width: 900px;
     height: 500px;
-    margin-top: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    background-color: white;
+}
+
+.smallrow {
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    flex-wrap: wrap;
+    margin-top:6px;
+}
+
+.labeltiny { font-size:14px; color:#555; }
+
+.evaluate-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.evaluate-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* --- Help Modal --- */
+.help-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+.help-content {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 20px;
+    max-width: 600px;
+    width: 90%;
+    text-align: left;
+    position: relative;
+}
+.help-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: bold;
 }
 </style>
 </head>
 <body>
-<div class="calculator">
-    <h1>Derivative Solver</h1>
-    <input type="text" id="funcInput" placeholder="Type a function, eg: x^3, leon, sin(3x), ...">
-    <br>
-    <button onclick="computeDerivative()">Derivative</button>
-    <button onclick="nextDerivative()">Next Derivative</button>
-    <div id="result"></div>
+<div class="container">
+    <div class="calculator">
+        <span class="help-icon" onclick="showHelp()">&#9432;</span>
+        <h1>Derivative Solver</h1>
+
+        <input type="text" id="funcInput" placeholder="Type a function, e.g., x^3, sin(3x), or x^2 + y^2 = 25">
+
+        <div class="smallrow">
+            <button onclick="computeDerivative()">Derivative</button>
+            <button onclick="nextDerivative()">Next Derivative</button>
+            <button onclick="computeImplicitDerivative()">Implicit dy/dx</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <div id="graph"></div>
+
+    <div class="evaluate-container">
+        <div class="evaluate-row">
+            <input type="number" id="evalX" placeholder="x value" step="any">
+            <input type="number" id="evalY" placeholder="y value" step="any">
+            <button class="evaluate-button" onclick="evaluateAtPoint()">Evaluate</button>
+        </div>
+        <div id="evalResult"></div>
+    </div>
 </div>
-<div id="graph"></div>
+
+<div class="help-modal" id="helpModal">
+    <div class="help-content">
+        <span class="help-close" onclick="closeHelp()">×</span>
+        <h2>How to Use the Derivative Solver</h2>
+        <p><strong>Explicit functions (f(x)):</strong></p>
+        <ul>
+            <li>Type a function in terms of x only. Example: <code>x^3</code>, <code>sin(3*x)</code>.</li>
+            <li>Click <strong>Derivative</strong> to see the first derivative, or <strong>Next Derivative</strong> for higher-order derivatives.</li>
+            <li>Only the x value is needed for evaluation.</li>
+        </ul>
+        <p><strong>Implicit functions (F(x,y) = 0):</strong></p>
+        <ul>
+            <li>Type an equation using "=", e.g., <code>x^2 + y^2 = 25</code>.</li>
+            <li>Click <strong>Implicit dy/dx</strong> to compute the derivative implicitly.</li>
+            <li>For evaluation, both x and y values are needed.</li>
+        </ul>
+    </div>
+</div>
 
 <script>
+// --- Help modal ---
+function showHelp() { document.getElementById('helpModal').style.display = 'flex'; }
+function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+
+// --- Derivative solver ---
 let originalNode = null;
 let derivativeNodes = [];
 let derivativeCount = 0;
+let implicitDyDxNode = null;
 
-function mathToTex(node) {
-    return node.toTex({parenthesis: 'keep', implicit: 'show'});
-}
-
-function preprocessInput(input) {
-    input = input.replace(/ln\(/g, 'log(');
-    input = input.replace(/e\^/g, 'exp');
-    return input;
-}
-
-function derivativeLabel(count) {
-    if (count === 0) return "f(x)";
-    else if (count === 1) return "f'(x)";
-    else if (count === 2) return "f''(x)";
-    else if (count === 3) return "f'''(x)";
-    else return `f^{(${count})}(x)`;
-}
-
-function isSpecialName(input) {
-    input = input.toLowerCase();
-    if (input.includes('leon')) return {msg:'Leon is very cool!', name:'leon'};
-    else if (input.includes('carver')) return {msg:'Carver is cool!', name:'carver'};
-    else if (input.includes('rebecca')) return {msg:'Rebecca is cool!', name:'rebecca'};
-    else if (input.includes('claire')) return {msg:'Claire is cool!', name:'claire'};
-    return null;
-}
+function mathToTex(node) { try { return node.toTex({parenthesis:'keep',implicit:'show'}); } catch{return node.toString();} }
+function preprocessInput(input){ input=input.replace(/ln\(/g,'log(').replace(/e\^/g,'exp'); return input; }
+function derivativeLabel(count){ if(count===0) return "f(x)"; else if(count===1) return "f'(x)"; else if(count===2) return "f''(x)"; else if(count===3) return "f'''(x)"; else return `f^{(${count})}(x)`; }
+function isSpecialName(input){ input=input.toLowerCase(); if(input.includes('leon')) return {msg:'Leon is very cool!', name:'leon'}; else if(input.includes('carver')) return {msg:'Carver is cool!', name:'carver'}; else if(input.includes('rebecca')) return {msg:'Rebecca is cool!', name:'rebecca'}; else if(input.includes('claire')) return {msg:'Claire is cool!', name:'claire'}; return null; }
 
 function computeDerivative() {
-    let input = document.getElementById('funcInput').value.trim();
-
-    let specialData = isSpecialName(input);
-    if (specialData) {
-        showSillyFace(specialData.name, specialData.msg);
-        return;
-    }
-
-    input = preprocessInput(input);
-
-    try {
-        originalNode = math.parse(input);
-        derivativeNodes = [originalNode];
-        derivativeCount = 1;
-        let firstDerivative = math.derivative(originalNode, 'x');
-        derivativeNodes.push(firstDerivative);
-        displayAllDerivatives();
-    } catch (err) {
-        document.getElementById('result').innerText = 'Error: ' + err.message;
-    }
+    implicitDyDxNode=null;
+    let input=document.getElementById('funcInput').value.trim();
+    let specialData=isSpecialName(input); if(specialData){showSillyFace(specialData.name,specialData.msg); return;}
+    input=preprocessInput(input);
+    try{ 
+        originalNode=math.parse(input); 
+        derivativeNodes=[originalNode]; 
+        derivativeCount=1; 
+        derivativeNodes.push(math.derivative(originalNode,'x')); 
+        displayAllDerivatives(); 
+    } catch(err){document.getElementById('result').innerText='Error: '+err.message;}
 }
 
-function nextDerivative() {
-    if (derivativeNodes.length === 0) {
-        document.getElementById('result').innerText = 'Error: Compute a derivative first.';
-        return;
-    }
-    if (document.getElementById('result').innerText.includes("cool!")) return;
-
-    try {
-        let lastDerivative = derivativeNodes[derivativeNodes.length - 1];
-        let nextDeriv = math.derivative(lastDerivative, 'x');
-        derivativeNodes.push(nextDeriv);
-        derivativeCount++;
-        displayAllDerivatives();
-    } catch (err) {
-        document.getElementById('result').innerText = 'Error: ' + err.message;
-    }
+function nextDerivative(){ 
+    if(derivativeNodes.length===0){document.getElementById('result').innerText='Compute a derivative first.'; return;} 
+    if(document.getElementById('result').innerText.includes("cool!")) return;
+    try{ 
+        let last=derivativeNodes[derivativeNodes.length-1]; 
+        derivativeNodes.push(math.derivative(last,'x')); 
+        derivativeCount++; 
+        displayAllDerivatives(); 
+    } catch(err){document.getElementById('result').innerText='Error: '+err.message;} 
 }
 
 function displayAllDerivatives() {
-    let latexStr = '';
-    for (let i = 1; i < derivativeNodes.length; i++) {
-        let label = derivativeLabel(i);
-        let latex = mathToTex(derivativeNodes[i]);
-        latexStr += `$$${label} = ${latex}$$<br>`;
+    implicitDyDxNode=null;
+    let latexStr=''; 
+    for(let i=1;i<derivativeNodes.length;i++){ 
+        latexStr+=`$$${derivativeLabel(i)} = ${mathToTex(derivativeNodes[i])}$$<br>`;
     }
-    document.getElementById('result').innerHTML = latexStr;
+    document.getElementById('result').innerHTML=latexStr; 
     MathJax.typesetPromise();
 
-    let colors = ['#4285f4','#ea4335','#fbbc05','#34a853','#9c27b0','#ff5722','#009688'];
-    let traces = [];
-    for (let i = 0; i < derivativeNodes.length; i++) {
-        let xValues = [];
-        let yValues = [];
-        for (let x = -10; x <= 10; x += 0.1) {
-            xValues.push(x);
-            try { yValues.push(derivativeNodes[i].evaluate({x:x})); }
-            catch { yValues.push(NaN); }
+    try{
+        let colors=['#4285f4','#ea4335','#fbbc05','#34a853','#9c27b0','#ff5722','#009688']; 
+        let traces=[];
+        for(let i=0;i<derivativeNodes.length;i++){ 
+            let xValues=[], yValues=[]; 
+            for(let x=-10;x<=10;x+=0.1){ 
+                xValues.push(x); 
+                try{yValues.push(derivativeNodes[i].evaluate({x:x}));}catch{yValues.push(NaN);} 
+            }
+            traces.push({x:xValues,y:yValues,mode:'lines',name:derivativeLabel(i),line:{color:colors[i%colors.length],dash:i===0?'solid':'dash'}});
         }
-        traces.push({
-            x: xValues,
-            y: yValues,
-            mode: 'lines',
-            name: derivativeLabel(i),
-            line: {color: colors[i % colors.length], dash: i===0 ? 'solid':'dash'}
-        });
-    }
-    Plotly.newPlot('graph', traces, {title:'Function & Derivatives', xaxis:{title:'x'}, yaxis:{title:'y'}}, {responsive:true});
+        Plotly.newPlot('graph',traces,{title:'Function & Derivatives',xaxis:{title:'x',scaleanchor:'y',scaleratio:1},yaxis:{title:'y'}},{responsive:true});
+    }catch(e){}
 }
 
+// --- Implicit derivative ---
+function computeImplicitDerivative() {
+    implicitDyDxNode=null;
+    let raw=document.getElementById('funcInput').value.trim();
+    if(!raw.includes('=')){document.getElementById('result').innerText='No "=" found.'; return;}
+    raw=preprocessInput(raw); 
+    let parts=raw.split('='); 
+    let left=parts.slice(0,parts.length-1).join('=').trim(); 
+    let right=parts[parts.length-1].trim();
+    try{
+        let Fnode=math.simplify(math.parse('('+left+')-('+right+')'));
+        let dFdx=math.derivative(Fnode,'x'); 
+        let dFdy=math.derivative(Fnode,'y');
+        implicitDyDxNode=math.simplify(math.parse(`(-1)*(${dFdx.toString()})/(${dFdy.toString()})`));
+        document.getElementById('result').innerHTML=`$$\\displaystyle \\frac{dy}{dx} = ${mathToTex(implicitDyDxNode)}$$`; 
+        MathJax.typesetPromise();
+
+        let xRange=math.range(-10,10,0.2,true)._data; 
+        let yRange=math.range(-10,10,0.2,true)._data; 
+        let z=[];
+        for(let yi=0;yi<yRange.length;yi++){ 
+            let row=[]; 
+            for(let xi=0;xi<xRange.length;xi++){ 
+                try{row.push(Fnode.evaluate({x:xRange[xi],y:yRange[yi]}));}catch{row.push(NaN);} 
+            } 
+            z.push(row); 
+        }
+
+        let slopeTraces=[]; 
+        let step=0.5;
+        for(let xi=-10;xi<=10;xi+=step){ 
+            for(let yi=-10;yi<=10;yi+=step){ 
+                try{ 
+                    let val=Fnode.evaluate({x:xi,y:yi}); 
+                    if(Math.abs(val)<0.1){ 
+                        let slope=implicitDyDxNode.evaluate({x:xi,y:yi}); 
+                        if(Math.abs(slope)<100){ 
+                            let dx=0.2; let dy=slope*dx; 
+                            slopeTraces.push({x:[xi-dx/2,xi+dx/2],y:[yi-dy/2,yi+dy/2],mode:'lines',line:{color:'red',width:2},showlegend:false}); 
+                        } 
+                    } 
+                }catch{} 
+            } 
+        }
+
+        Plotly.newPlot('graph',[{z:z,x:xRange,y:yRange,type:'contour',contours:{showlines:false,coloring:'lines',start:0,end:0,size:0.0001},line:{width:2},showscale:false,name:'F(x,y)=0'}, ...slopeTraces],
+        {responsive:true,title:'Implicit Curve & Slope',xaxis:{title:'x',scaleanchor:'y',scaleratio:1},yaxis:{title:'y'}});
+    }catch(err){document.getElementById('result').innerText='Error: '+err.message;}
+}
+
+// --- Evaluate at point ---
+function evaluateAtPoint() {
+    let xVal=document.getElementById('evalX').value; 
+    let yVal=document.getElementById('evalY').value;
+    let output=document.getElementById('evalResult');
+
+    if(xVal===''){output.innerText='Enter x value.'; return;}
+    let x=parseFloat(xVal);
+    let y=parseFloat(yVal);
+
+    if(implicitDyDxNode){ 
+        if(yVal===''){output.innerText='Enter y value for implicit derivative.'; return;}
+        try{ 
+            let val=implicitDyDxNode.evaluate({x:x,y:y}); 
+            if(!isFinite(val)){output.innerText='Result not finite (∂F/∂y=0?)'; return;} 
+            output.innerHTML=`$$\\displaystyle \\frac{dy}{dx}\\Big|_{(x=${x},y=${y})} = ${val}$$`; 
+            MathJax.typesetPromise(); 
+            return;
+        } catch{output.innerText='Could not evaluate at that point.'; return;} 
+    }
+
+    if(derivativeNodes.length>1){ 
+        try{ 
+            let val=derivativeNodes[1].evaluate({x:x}); 
+            output.innerHTML=`$$f'(x)\\big|_{x=${x}} = ${val}$$`; 
+            MathJax.typesetPromise(); 
+            return;
+        }catch(err){output.innerText='Evaluation failed.'; return;} 
+    }
+
+    output.innerText='No derivative available to evaluate.';
+}
+
+// --- Silly faces ---
 function showSillyFace(name, message) {
     document.getElementById('result').innerText = message;
-
-    let xCircle = [], yCircle = [];
-    for (let t = 0; t <= 2*Math.PI; t += 0.01) {
-        xCircle.push(Math.cos(t));
-        yCircle.push(Math.sin(t));
-    }
-
-    let leftEye = {x:[], y:[], mode:'markers', marker:{size:10}, name:'left eye'};
-    let rightEye = {x:[], y:[], mode:'markers', marker:{size:10}, name:'right eye'};
-    let mouth = {x:[], y:[], mode:'lines', line:{width:3}, name:'mouth'};
-    let extras = [];
-
-    let faceColor = 'orange';
+    let xCircle=[], yCircle=[]; for(let t=0; t<=2*Math.PI; t+=0.01){ xCircle.push(Math.cos(t)); yCircle.push(Math.sin(t)); }
+    let leftEye={x:[], y:[], mode:'markers', marker:{size:10}}, rightEye={x:[], y:[], mode:'markers', marker:{size:10}}, mouth={x:[], y:[], mode:'lines', line:{width:3}}, extras=[];
+    let faceColor='orange';
     switch(name){
-        case 'leon':
-            faceColor='blue';
-            leftEye.x=[-0.35]; leftEye.y=[0.5]; leftEye.marker.color='blue';
+        case 'leon': faceColor='blue'; leftEye.x=[-0.35]; leftEye.y=[0.5]; leftEye.marker.color='blue';
             rightEye.x=[0.35]; rightEye.y=[0.5]; rightEye.marker.color='blue';
             for(let t=0;t<=2*Math.PI;t+=0.01){ mouth.x.push(0.2*Math.cos(t)); mouth.y.push(-0.6+0.2*Math.sin(t)); }
-            extras.push({x:[-0.5,0,0.5], y:[1.2,1.5,1.2], mode:'lines', line:{color:'brown', width:4}, name:'hair'});
-            break;
-        case 'carver':
-            faceColor='yellow';
-            leftEye.x=[-0.5]; leftEye.y=[0.3]; leftEye.marker.color='blue';
+            extras.push({x:[-0.5,0,0.5], y:[1.2,1.5,1.2], mode:'lines', line:{color:'brown', width:4}}); break;
+        case 'carver': faceColor='yellow'; leftEye.x=[-0.5]; leftEye.y=[0.3]; leftEye.marker.color='blue';
             rightEye.x=[0.35]; rightEye.y=[1]; rightEye.marker.color='brown';
             for(let t=0;t<=2*Math.PI;t+=0.01){ mouth.x.push(0.2*Math.cos(t)); mouth.y.push(-0.6+0.2*Math.sin(t)); }
-            extras.push({x:[-0.5,0,0.5], y:[1.2,1.5,1.2], mode:'lines', line:{color:'brown', width:4}, name:'hair'});
-            break;
-case 'rebecca':
-    faceColor='purple';
-    // Eyes
-    leftEye.x=[-0.35]; leftEye.y=[0.5]; leftEye.marker.color='black'; leftEye.marker.size=18;
-    rightEye.x=[0.35]; rightEye.y=[0.5]; rightEye.marker.color='blue'; rightEye.marker.size=18;
-    // Mouth
-    for(let t=0;t<=2*Math.PI;t+=0.01){ 
-        mouth.x.push(0.2*Math.cos(t)); 
-        mouth.y.push(-0.5+0.5*Math.sin(t)); 
-    }
-    // Hair
-    extras.push({x:[-1,0,1], y:[0.6,1.5,0.6], mode:'lines', line:{color:'brown', width:4}, name:'hair'});
-    // Big circle around face
-    let bigCircleX=[], bigCircleY=[];
-    let radius = 2; // bigger than face
-    for(let t=0; t<=2*Math.PI; t+=0.01){
-        bigCircleX.push(radius*Math.cos(t));
-        bigCircleY.push(radius*Math.sin(t));
-    }
-    extras.push({x:bigCircleX, y:bigCircleY, mode:'lines', line:{color:'orange', width:2}, name:'big circle'});
-    break;
-
-        case 'claire':
-            faceColor='orange';
-            leftEye.x=[-0.4]; leftEye.y=[0.5]; leftEye.marker.color='black';
+            extras.push({x:[-0.5,0,0.5], y:[1.2,1.5,1.2], mode:'lines', line:{color:'brown', width:4}}); break;
+        case 'rebecca': faceColor='purple';
+            leftEye.x=[-0.35]; leftEye.y=[0.5]; leftEye.marker.color='black'; leftEye.marker.size=18;
+            rightEye.x=[0.35]; rightEye.y=[0.5]; rightEye.marker.color='blue'; rightEye.marker.size=18;
+            for(let t=0;t<=2*Math.PI;t+=0.01){ mouth.x.push(0.2*Math.cos(t)); mouth.y.push(-0.5+0.5*Math.sin(t)); }
+            extras.push({x:[-1,0,1], y:[0.6,1.5,0.6], mode:'lines', line:{color:'brown', width:4}});
+            let bigCircleX=[], bigCircleY=[], radius=2;
+            for(let t=0; t<=2*Math.PI; t+=0.01){ bigCircleX.push(radius*Math.cos(t)); bigCircleY.push(radius*Math.sin(t)); }
+            extras.push({x:bigCircleX, y:bigCircleY, mode:'lines', line:{color:'orange', width:2}}); break;
+        case 'claire': faceColor='orange'; leftEye.x=[-0.4]; leftEye.y=[0.5]; leftEye.marker.color='black';
             rightEye.x=[0.4]; rightEye.y=[0.5]; rightEye.marker.color='black';
-            for(let t=Math.PI/4;t<=3*Math.PI/4;t+=0.01){ mouth.x.push(Math.cos(t)); mouth.y.push(-0.5+0.5*Math.sin(t)); }
-            break;
+            for(let t=Math.PI/4;t<=3*Math.PI/4;t+=0.01){ mouth.x.push(Math.cos(t)); mouth.y.push(-0.5+0.5*Math.sin(t)); } break;
     }
-
-    let face = {x:xCircle, y:yCircle, mode:'lines', name:'face', line:{color:faceColor, width:2}};
-    Plotly.newPlot('graph', [face, leftEye, rightEye, mouth, ...extras], {xaxis:{title:'x'}, yaxis:{title:'y'}, title:'Silly Face'}, {responsive:true});
+    let face={x:xCircle, y:yCircle, mode:'lines', line:{color:faceColor, width:2}};
+    Plotly.newPlot('graph',[face,leftEye,rightEye,mouth,...extras],{responsive:true,xaxis:{scaleanchor:'y',scaleratio:1},yaxis:{},title:'Silly Face'});
 }
-
-
 </script>
 </body>
 </html>
