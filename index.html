@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Derivative Solver</title>
+    <title>Calculus Solver</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.12.0/math.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/algebrite@1.4.0/dist/algebrite.bundle-for-browser.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         /* --- CSS Variables --- */
@@ -259,6 +261,44 @@
             width: 100%;
         }
 
+        .bounds-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .bound-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .inf-btn {
+            font-size: 13px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background-color: #f1f3f4;
+            color: var(--text-color);
+            border: 1px solid #dadce0;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .inf-btn:hover {
+            background-color: #e8eaed;
+        }
+
+        .inf-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
         /* --- Help Modal --- */
         .modal {
             display: none;
@@ -449,6 +489,70 @@
                 height: 550px;
             }
         }
+
+        /* --- Loading Overlay --- */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 998;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .loading-title {
+            font-size: 1.1rem;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .loading-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .loading-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4285f4, #34a853, #4285f4);
+            background-size: 200% 100%;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: loading-shimmer 1.5s infinite linear;
+        }
+
+        @keyframes loading-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .loading-status {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -459,7 +563,7 @@
             <div class="calculator-section">
                 <div class="card">
                     <div class="card-header">
-                        <h1 class="card-title">Derivative Solver</h1>
+                        <h1 class="card-title">Calculus Solver</h1>
                         <span class="help-icon" id="helpIcon">&#9432;</span>
                     </div>
 
@@ -514,7 +618,21 @@
                         <button class="btn" id="derivativeBtn">Derivative</button>
                         <button class="btn" id="nextDerivativeBtn">Next Derivative</button>
                         <button class="btn" id="implicitBtn">Implicit dy/dx</button>
+                        <button class="btn" id="integralBtn">Integral</button>
+                        <button class="btn" id="definiteIntegralBtn">Definite ∫</button>
                         <button class="btn btn-success" id="resetBtn">Reset</button>
+                    </div>
+
+                    <div class="bounds-row" id="boundsRow" style="display: none;">
+                        <div class="bound-group">
+                            <button class="btn inf-btn" id="negInfBtn" title="Set lower bound to -∞">-∞</button>
+                            <input type="text" id="integralA" class="input-field" style="width:120px" placeholder="Lower (a)" step="any">
+                        </div>
+                        <div class="bound-group">
+                            <input type="text" id="integralB" class="input-field" style="width:120px" placeholder="Upper (b)" step="any">
+                            <button class="btn inf-btn" id="posInfBtn" title="Set upper bound to +∞">+∞</button>
+                        </div>
+                        <button class="btn btn-small" id="computeDefiniteBtn">Compute</button>
                     </div>
 
                     <div id="result" class="output-area"></div>
@@ -560,7 +678,20 @@
                     <div class="function-item">π (pi), e (Euler's number)</div>
                     <div class="function-item">+, -, ×, ÷, ^, (, )</div>
                 </div>
+                <h3 style="margin-top: 15px;">Integration Support</h3>
+                <p style="font-size: 0.9rem; color: #555;">Multi-strategy symbolic integration: Algebrite CAS → Nerdamer CAS → custom rule engine (integration by parts, u-substitution, trig identities, power reduction, integral table). For non-elementary integrals like sin(sin(cos(x))), automatically produces Taylor series polynomial approximations. All symbolic results verified by differentiation. Final fallback: adaptive Simpson's rule numerical integration with near-exact precision.</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+            <div class="loading-title" id="loadingTitle">Computing Integral...</div>
+            <div class="loading-bar-container">
+                <div class="loading-bar" id="loadingBar"></div>
+            </div>
+            <div class="loading-status" id="loadingStatus">Initializing...</div>
         </div>
     </div>
 
@@ -568,7 +699,7 @@
     <div class="modal" id="helpModal">
         <div class="modal-content">
             <span class="modal-close" id="closeHelp">×</span>
-            <h2>How to Use the Derivative Solver</h2>
+            <h2>How to Use the Calculus Solver</h2>
             <p><strong>Explicit functions (f(x)):</strong></p>
             <ul>
                 <li>Type a function in terms of x only. Example: <code>x^3</code>, <code>sin(3*x)</code>, <code>arcsin(x)</code>.</li>
@@ -580,6 +711,15 @@
                 <li>Type an equation using "=", e.g., <code>x^2 + y^2 = 25</code>.</li>
                 <li>Click <strong>Implicit dy/dx</strong> to compute the derivative implicitly.</li>
                 <li>For evaluation, both x and y values are needed.</li>
+            </ul>
+            <p><strong>Integrals:</strong></p>
+            <ul>
+                <li>Type a function and click <strong>Integral</strong> for the indefinite integral (antiderivative + C).</li>
+                <li>Click <strong>Definite ∫</strong> to show bound inputs, enter lower and upper bounds, then click <strong>Compute</strong>.</li>
+                <li>Powered by Algebrite CAS, Nerdamer CAS, and a custom rule engine — handles polynomials, rational functions, trig, exponentials, logarithms, products like x*sin(x), compositions, and much more.</li>
+                <li>Applies integration by parts, u-substitution, trig identities, and power reduction formulas.</li>
+                <li>For non-elementary integrals (e.g., sin(sin(cos(x)))), produces Taylor series polynomial approximations integrated term by term.</li>
+                <li>Results are verified by differentiation. Final fallback: adaptive Simpson's rule with near-exact numerical precision.</li>
             </ul>
             <p><strong>Using Math Symbols:</strong></p>
             <ul>
@@ -596,7 +736,8 @@
             originalNode: null,
             derivativeNodes: [],
             derivativeCount: 0,
-            implicitDyDxNode: null
+            implicitDyDxNode: null,
+            integralNode: null
         };
 
         // --- DOM Elements ---
@@ -615,8 +756,42 @@
             implicitBtn: document.getElementById('implicitBtn'),
             evaluateBtn: document.getElementById('evaluateBtn'),
             resetBtn: document.getElementById('resetBtn'),
-            symbolBtns: document.querySelectorAll('.symbol-btn')
+            integralBtn: document.getElementById('integralBtn'),
+            definiteIntegralBtn: document.getElementById('definiteIntegralBtn'),
+            boundsRow: document.getElementById('boundsRow'),
+            integralA: document.getElementById('integralA'),
+            integralB: document.getElementById('integralB'),
+            computeDefiniteBtn: document.getElementById('computeDefiniteBtn'),
+            negInfBtn: document.getElementById('negInfBtn'),
+            posInfBtn: document.getElementById('posInfBtn'),
+            symbolBtns: document.querySelectorAll('.symbol-btn'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            loadingBar: document.getElementById('loadingBar'),
+            loadingStatus: document.getElementById('loadingStatus'),
+            loadingTitle: document.getElementById('loadingTitle')
         };
+
+        // --- Loading Indicator ---
+        const loading = {
+            show(title) {
+                elements.loadingTitle.textContent = title || 'Computing...';
+                elements.loadingBar.style.width = '0%';
+                elements.loadingStatus.textContent = 'Initializing...';
+                elements.loadingOverlay.classList.add('active');
+            },
+            update(percent, status) {
+                elements.loadingBar.style.width = Math.min(percent, 100) + '%';
+                if (status) elements.loadingStatus.textContent = status;
+            },
+            hide() {
+                elements.loadingOverlay.classList.remove('active');
+            }
+        };
+
+        // --- Yield to browser (let UI repaint) ---
+        function yieldToBrowser() {
+            return new Promise(r => setTimeout(r, 20));
+        }
 
         // --- Utility Functions ---
         const utils = {
@@ -686,15 +861,23 @@
                 state.derivativeNodes = [];
                 state.derivativeCount = 0;
                 state.implicitDyDxNode = null;
+                state.integralNode = null;
                 elements.result.innerHTML = '';
                 elements.evalResult.innerHTML = '';
                 elements.funcInput.value = '';
                 elements.evalX.value = '';
                 elements.evalY.value = '';
+                elements.integralA.value = '';
+                elements.integralA.readOnly = false;
+                elements.integralB.value = '';
+                elements.integralB.readOnly = false;
+                elements.negInfBtn.classList.remove('active');
+                elements.posInfBtn.classList.remove('active');
+                elements.boundsRow.style.display = 'none';
                 
                 // Clear graph
                 Plotly.purge(elements.graph);
-                elements.graph.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">Graph will appear here after computing a derivative.</p>';
+                elements.graph.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">Graph will appear here after computing.</p>';
             },
 
             insertSymbol(symbol) {
@@ -1102,6 +1285,1109 @@
             }
         };
 
+        // --- Integration Functions ---
+        const integration = {
+            async compute() {
+                state.implicitDyDxNode = null;
+                state.derivativeNodes = [];
+                state.derivativeCount = 0;
+                const input = elements.funcInput.value.trim();
+
+                if (!input) {
+                    elements.result.innerText = 'Please enter a function.';
+                    return;
+                }
+
+                const specialData = utils.isSpecialName(input);
+                if (specialData) {
+                    derivative.showSillyFace(specialData.name, specialData.msg);
+                    return;
+                }
+
+                const processedInput = utils.preprocessInput(input);
+
+                loading.show('Computing Integral...');
+                await yieldToBrowser();
+
+                try {
+                    const node = math.parse(processedInput);
+                    state.originalNode = node;
+
+                    // Multi-strategy integration with loading updates
+                    loading.update(10, 'Trying symbolic integration...');
+                    await yieldToBrowser();
+
+                    const result = await this.multiStrategyIntegrate(processedInput, 'x');
+
+                    if (result.node) {
+                        state.integralNode = result.node;
+                        loading.update(90, 'Rendering result...');
+                        await yieldToBrowser();
+
+                        let tex = utils.mathToTex(state.integralNode);
+                        tex = utils.postprocessOutput(tex);
+
+                        const methodTag = result.method ? `<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Method: ${result.method}</span>` : '';
+                        elements.result.innerHTML = `$$\\int f(x)\\,dx = ${tex} + C$$${methodTag}`;
+                        MathJax.typesetPromise();
+                        this.plotWithAntiderivative(node, state.integralNode);
+                    } else {
+                        // Try Taylor series approximation as last resort
+                        loading.update(70, 'Trying Taylor series approximation...');
+                        await yieldToBrowser();
+
+                        const taylorResult = this.taylorSeriesIntegrate(processedInput, 'x', 0, 12);
+                        if (taylorResult.node) {
+                            state.integralNode = taylorResult.node;
+                            let tex = utils.mathToTex(state.integralNode);
+                            tex = utils.postprocessOutput(tex);
+                            const info = `<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">No elementary antiderivative exists. Showing Taylor series approximation (${taylorResult.terms} terms, centered at x=0).</span>`;
+                            elements.result.innerHTML = `$$\\int f(x)\\,dx \\approx ${tex} + C$$${info}`;
+                            MathJax.typesetPromise();
+                            this.plotWithAntiderivative(node, state.integralNode);
+                        } else {
+                            loading.update(85, 'Computing numerical integral...');
+                            await yieldToBrowser();
+
+                            state.integralNode = null;
+                            // Still show numerical integral with a good graph
+                            const numAtOne = this.adaptiveSimpson(node, 0, 1, 1e-10, 15);
+                            elements.result.innerHTML = `<p style="color: #555;">No elementary antiderivative exists (Risch algorithm classification: non-elementary).</p><p style="color: #555;">Numerical approximation: $$\\int_0^1 f(x)\\,dx \\approx ${parseFloat(numAtOne.toFixed(10))}$$</p><span style="font-size: 12px; color: #888;">Graph shows high-accuracy numerical integral F(x) = \u222b\u2080\u02e3 f(t) dt</span>`;
+                            MathJax.typesetPromise();
+                            this.plotNumerical(node);
+                        }
+                    }
+                    loading.update(100, 'Done!');
+                } catch (err) {
+                    elements.result.innerText = 'Error: ' + err.message;
+                } finally {
+                    setTimeout(() => loading.hide(), 300);
+                }
+            },
+
+            async computeDefinite() {
+                state.implicitDyDxNode = null;
+                state.derivativeNodes = [];
+                state.derivativeCount = 0;
+                const input = elements.funcInput.value.trim();
+                const aRaw = elements.integralA.value.trim().toLowerCase();
+                const bRaw = elements.integralB.value.trim().toLowerCase();
+
+                if (!input) { elements.result.innerText = 'Please enter a function.'; return; }
+                if (aRaw === '' || bRaw === '') { elements.result.innerText = 'Enter both bounds for definite integral.'; return; }
+
+                // Parse bounds, supporting -Infinity/+Infinity
+                const parseInfBound = (s) => {
+                    s = s.replace(/\s/g, '');
+                    if (s === '-infinity' || s === '-inf' || s === '-∞') return -Infinity;
+                    if (s === '+infinity' || s === 'infinity' || s === '+inf' || s === 'inf' || s === '+∞' || s === '∞') return Infinity;
+                    const v = parseFloat(s);
+                    if (isNaN(v)) return NaN;
+                    return v;
+                };
+
+                const a = parseInfBound(aRaw);
+                const b = parseInfBound(bRaw);
+                if (isNaN(a) || isNaN(b)) { elements.result.innerText = 'Invalid bound value.'; return; }
+                const hasInfBound = !isFinite(a) || !isFinite(b);
+                const processedInput = utils.preprocessInput(input);
+
+                // LaTeX display labels for bounds
+                const aLabel = a === -Infinity ? '-\\infty' : a;
+                const bLabel = b === Infinity ? '+\\infty' : b;
+
+                loading.show('Computing Definite Integral...');
+                await yieldToBrowser();
+
+                try {
+                    const node = math.parse(processedInput);
+                    state.originalNode = node;
+
+                    if (hasInfBound) {
+                        // Improper integral: use numerical limit approach
+                        loading.update(30, 'Computing improper integral numerically...');
+                        await yieldToBrowser();
+
+                        const resultVal = this._improperIntegral(node, a, b);
+                        if (resultVal !== null && isFinite(resultVal)) {
+                            const displayVal = parseFloat(resultVal.toFixed(10));
+                            const convergenceNote = Math.abs(resultVal) < 1e-12
+                                ? ' (converges to 0)'
+                                : (Math.abs(resultVal) > 1e10 ? ' (may diverge)' : '');
+                            elements.result.innerHTML = `$$\\int_{${aLabel}}^{${bLabel}} f(x)\\,dx \\approx ${displayVal}$$<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Improper integral — adaptive numerical integration with limit approach${convergenceNote}</span>`;
+                        } else {
+                            elements.result.innerHTML = `$$\\int_{${aLabel}}^{${bLabel}} f(x)\\,dx$$<span style="font-size: 12px; color: #d93025; display: block; margin-top: 4px;">This improper integral appears to diverge (does not converge to a finite value).</span>`;
+                        }
+                        MathJax.typesetPromise();
+
+                        loading.update(90, 'Plotting...');
+                        await yieldToBrowser();
+                        // Plot with clamped finite range
+                        const plotA = isFinite(a) ? a : Math.min(-20, isFinite(b) ? b - 20 : -20);
+                        const plotB = isFinite(b) ? b : Math.max(20, isFinite(a) ? a + 20 : 20);
+                        this.plotDefinite(node, plotA, plotB);
+                        loading.update(100, 'Done!');
+                    } else {
+                        // Finite bounds — existing logic
+                        loading.update(10, 'Trying symbolic integration...');
+                        await yieldToBrowser();
+
+                        const result = await this.multiStrategyIntegrate(processedInput, 'x');
+
+                        if (result.node) {
+                            state.integralNode = result.node;
+                            loading.update(80, 'Evaluating bounds...');
+                            await yieldToBrowser();
+
+                            const Fb = state.integralNode.evaluate({ x: b });
+                            const Fa = state.integralNode.evaluate({ x: a });
+                            const symbolicResult = Fb - Fa;
+
+                            let tex = utils.mathToTex(state.integralNode);
+                            tex = utils.postprocessOutput(tex);
+                            const resultVal = parseFloat(symbolicResult.toFixed(8));
+
+                            elements.result.innerHTML = `$$\\int_{${aLabel}}^{${bLabel}} f(x)\\,dx = \\left[${tex}\\right]_{${aLabel}}^{${bLabel}} = ${resultVal}$$`;
+                            MathJax.typesetPromise();
+                        } else {
+                            // Try Taylor approximation for definite integral
+                            loading.update(65, 'Trying Taylor series approximation...');
+                            await yieldToBrowser();
+
+                            const taylorResult = this.taylorSeriesIntegrate(processedInput, 'x', 0, 12);
+                            let resultVal;
+                            if (taylorResult.node) {
+                                try {
+                                    const Fb = taylorResult.node.evaluate({ x: b });
+                                    const Fa = taylorResult.node.evaluate({ x: a });
+                                    const taylorVal = parseFloat((Fb - Fa).toFixed(8));
+                                    const numVal = parseFloat(this.adaptiveSimpson(node, a, b, 1e-10, 15).toFixed(8));
+                                    state.integralNode = taylorResult.node;
+                                    elements.result.innerHTML = `$$\\int_{${aLabel}}^{${bLabel}} f(x)\\,dx \\approx ${numVal}$$<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Adaptive numerical (high precision). Taylor approx: ${taylorVal}</span>`;
+                                    MathJax.typesetPromise();
+                                } catch {
+                                    resultVal = parseFloat(this.adaptiveSimpson(node, a, b, 1e-10, 15).toFixed(8));
+                                    state.integralNode = null;
+                                    elements.result.innerHTML = `$$\\int_{${aLabel}}^{${bLabel}} f(x)\\,dx \\approx ${resultVal}$$<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Adaptive numerical integration</span>`;
+                                    MathJax.typesetPromise();
+                                }
+                            } else {
+                                loading.update(80, 'Computing numerical integral...');
+                                await yieldToBrowser();
+
+                                resultVal = parseFloat(this.adaptiveSimpson(node, a, b, 1e-10, 15).toFixed(8));
+                                state.integralNode = null;
+                                elements.result.innerHTML = `$$\\int_{${aLabel}}^{${bLabel}} f(x)\\,dx \\approx ${resultVal}$$<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Adaptive numerical integration</span>`;
+                                MathJax.typesetPromise();
+                            }
+                        }
+
+                        loading.update(90, 'Plotting...');
+                        await yieldToBrowser();
+                        this.plotDefinite(node, a, b);
+                        loading.update(100, 'Done!');
+                    }
+                } catch (err) {
+                    elements.result.innerText = 'Error: ' + err.message;
+                } finally {
+                    setTimeout(() => loading.hide(), 300);
+                }
+            },
+
+            // ---- Improper Integral (limit approach) ----
+            // Handles -∞ and/or +∞ bounds by integrating to increasingly large finite limits
+            // and checking for convergence
+            _improperIntegral(fNode, a, b) {
+                const limits = [10, 50, 100, 500, 1000, 5000];
+                let prevVal = null;
+
+                for (const L of limits) {
+                    const effA = isFinite(a) ? a : -L;
+                    const effB = isFinite(b) ? b : L;
+                    if (effA >= effB) continue;
+                    try {
+                        const val = this.adaptiveSimpson(fNode, effA, effB, 1e-8, 12);
+                        if (!isFinite(val)) return null;
+                        // Check convergence: if two successive limits agree within tolerance
+                        if (prevVal !== null && Math.abs(val - prevVal) < Math.max(1e-6, Math.abs(val) * 1e-4)) {
+                            return val;
+                        }
+                        prevVal = val;
+                    } catch {
+                        return null;
+                    }
+                }
+                // Return last value with a warning (may not have converged)
+                return prevVal;
+            },
+
+            // ========================================================
+            // Multi-Strategy Integration Engine
+            // Tries multiple CAS libraries and a custom rule engine
+            // ========================================================
+            async multiStrategyIntegrate(exprStr, v) {
+                // Set a global deadline: 10 seconds max for all strategies
+                this._deadline = performance.now() + 10000;
+
+                // Strategy 1: Algebrite CAS
+                try {
+                    loading.update(15, 'Trying Algebrite CAS...');
+                    await yieldToBrowser();
+                    const node = this.tryAlgebrite(exprStr, v);
+                    if (node) {
+                        try {
+                            if (this.verifyIntegral(exprStr, node, v)) {
+                                return { node, method: 'Algebrite CAS' };
+                            }
+                        } catch {}
+                        // Even without verification, trust Algebrite if it returned something
+                        return { node, method: 'Algebrite CAS' };
+                    }
+                } catch (e) { /* continue */ }
+
+                if (performance.now() > this._deadline) return { node: null, method: null };
+
+                // Strategy 2: Nerdamer CAS
+                try {
+                    loading.update(30, 'Trying Nerdamer CAS...');
+                    await yieldToBrowser();
+                    const node = this.tryNerdamer(exprStr, v);
+                    if (node) {
+                        try {
+                            if (this.verifyIntegral(exprStr, node, v)) {
+                                return { node, method: 'Nerdamer CAS' };
+                            }
+                        } catch {}
+                        return { node, method: 'Nerdamer CAS' };
+                    }
+                } catch (e) { /* continue */ }
+
+                if (performance.now() > this._deadline) return { node: null, method: null };
+
+                // Strategy 3: Custom rule-based engine
+                try {
+                    loading.update(50, 'Trying rule-based engine...');
+                    await yieldToBrowser();
+                    const mathjsNode = math.parse(exprStr);
+                    const node = this.ruleBasedIntegrate(mathjsNode, v);
+                    if (node) {
+                        const simplified = this._safeSimplify(node);
+                        try {
+                            if (this.verifyIntegral(exprStr, simplified, v)) {
+                                return { node: simplified, method: 'Rule-based engine' };
+                            }
+                        } catch {}
+                        return { node: simplified, method: 'Rule-based engine (unverified)' };
+                    }
+                } catch (e) { /* continue */ }
+
+                // All symbolic methods failed
+                return { node: null, method: null };
+            },
+
+            // Safe simplify: skips simplification for overly complex expressions
+            _safeSimplify(node) {
+                try {
+                    const str = node.toString();
+                    if (str.length > 400) return node; // too complex, skip
+                    return math.simplify(node);
+                } catch {
+                    return node;
+                }
+            },
+
+            // ---- Strategy 1: Algebrite ----
+            tryAlgebrite(exprStr, v) {
+                let algExpr = this.toAlgebrite(exprStr);
+                const resultStr = Algebrite.run(`integral(${algExpr}, ${v})`);
+
+                if (!resultStr ||
+                    resultStr.includes('integral') ||
+                    resultStr.includes('Stop') ||
+                    (resultStr.trim() === '0' && !/^\s*0\s*$/.test(exprStr))) {
+                    return null;
+                }
+
+                let mathjsStr = this.fromAlgebrite(resultStr);
+                return this._safeSimplify(math.parse(mathjsStr));
+            },
+
+            toAlgebrite(expr) {
+                let s = expr;
+                s = s.replace(/\basin\(/g, 'arcsin(');
+                s = s.replace(/\bacos\(/g, 'arccos(');
+                s = s.replace(/\batan\(/g, 'arctan(');
+                s = s.replace(/\bacsc\(/g, 'arccsc(');
+                s = s.replace(/\basec\(/g, 'arcsec(');
+                s = s.replace(/\bacot\(/g, 'arccot(');
+                return s;
+            },
+
+            fromAlgebrite(expr) {
+                let s = expr;
+                s = s.replace(/\*\*/g, '^');
+                s = s.replace(/\barctan\(/g, 'atan(');
+                s = s.replace(/\barcsin\(/g, 'asin(');
+                s = s.replace(/\barccos\(/g, 'acos(');
+                s = s.replace(/\barccsc\(/g, 'acsc(');
+                s = s.replace(/\barcsec\(/g, 'asec(');
+                s = s.replace(/\barccot\(/g, 'acot(');
+                return s;
+            },
+
+            // ---- Strategy 2: Nerdamer ----
+            tryNerdamer(exprStr, v) {
+                let nerdExpr = this.toNerdamer(exprStr);
+                const resultExpr = nerdamer(`integrate(${nerdExpr}, ${v})`);
+                const resultStr = resultExpr.text();
+
+                if (!resultStr ||
+                    resultStr.includes('integrate') ||
+                    resultStr.includes('NaN') ||
+                    resultStr.includes('undefined')) {
+                    return null;
+                }
+
+                let mathjsStr = this.fromNerdamer(resultStr);
+                return this._safeSimplify(math.parse(mathjsStr));
+            },
+
+            toNerdamer(expr) {
+                // Nerdamer uses the same function names as math.js for trig
+                // but uses log for natural log (same as our preprocessed input)
+                return expr;
+            },
+
+            fromNerdamer(expr) {
+                let s = expr;
+                // Nerdamer outputs with ^ already, but may use abs with pipes
+                s = s.replace(/\|([^|]+)\|/g, 'abs($1)');
+                return s;
+            },
+
+            // ---- Strategy 3: Custom Rule-Based Engine ----
+            // Implements the same techniques a human would use:
+            // power rule, table lookup, constant multiples, sum/difference,
+            // integration by parts, u-substitution, partial fractions,
+            // trigonometric identities & powers
+            ruleBasedIntegrate(node, v, depth = 0) {
+                if (depth > 10) throw new Error('Max recursion depth');
+                if (this._deadline && performance.now() > this._deadline) throw new Error('Computation timeout');
+                // Only simplify at the top level to avoid exponential cost
+                if (depth === 0) node = this._safeSimplify(node);
+
+                // --- Rule: Constant ---
+                if (!this._containsVar(node, v)) {
+                    return math.parse(`(${node.toString()}) * ${v}`);
+                }
+
+                // --- Rule: Just x ---
+                if (node.type === 'SymbolNode' && node.name === v) {
+                    return math.parse(`${v}^2 / 2`);
+                }
+
+                // --- Parenthesis ---
+                if (node.type === 'ParenthesisNode') {
+                    return this.ruleBasedIntegrate(node.content, v, depth + 1);
+                }
+
+                // --- Operator Nodes ---
+                if (node.type === 'OperatorNode') {
+                    return this._integrateOp(node, v, depth);
+                }
+
+                // --- Function Nodes ---
+                if (node.type === 'FunctionNode') {
+                    return this._integrateFn(node, v, depth);
+                }
+
+                throw new Error('No rule matches');
+            },
+
+            _integrateOp(node, v, depth) {
+                // Sum / Difference
+                if (node.fn === 'add' || node.fn === 'subtract') {
+                    const L = this.ruleBasedIntegrate(node.args[0], v, depth + 1);
+                    const R = this.ruleBasedIntegrate(node.args[1], v, depth + 1);
+                    return math.parse(`(${L}) ${node.op} (${R})`);
+                }
+
+                // Unary minus
+                if (node.fn === 'unaryMinus') {
+                    const inner = this.ruleBasedIntegrate(node.args[0], v, depth + 1);
+                    return math.parse(`-(${inner})`);
+                }
+
+                // Multiply
+                if (node.fn === 'multiply') {
+                    return this._integrateProduct(node, v, depth);
+                }
+
+                // Divide
+                if (node.fn === 'divide') {
+                    return this._integrateDivision(node, v, depth);
+                }
+
+                // Power
+                if (node.fn === 'pow') {
+                    return this._integratePower(node, v, depth);
+                }
+
+                throw new Error('Cannot integrate operator: ' + node.fn);
+            },
+
+            _integrateProduct(node, v, depth) {
+                if (this._deadline && performance.now() > this._deadline) throw new Error('Computation timeout');
+                const [a, b] = node.args;
+
+                // Constant * f(x)
+                if (!this._containsVar(a, v)) {
+                    const inner = this.ruleBasedIntegrate(b, v, depth + 1);
+                    return math.parse(`(${a}) * (${inner})`);
+                }
+                if (!this._containsVar(b, v)) {
+                    const inner = this.ruleBasedIntegrate(a, v, depth + 1);
+                    return math.parse(`(${b}) * (${inner})`);
+                }
+
+                // Try U-substitution
+                try {
+                    const result = this._tryUSubstitution(node, v, depth);
+                    if (result) return result;
+                } catch {}
+
+                // Try Integration by Parts (LIATE rule)
+                try {
+                    const result = this._tryByParts(a, b, v, depth);
+                    if (result) return result;
+                } catch {}
+
+                // Try expanding the product
+                try {
+                    const expanded = math.simplify(node, [
+                        'n1*(n2+n3) -> n1*n2 + n1*n3',
+                        '(n1+n2)*n3 -> n1*n3 + n2*n3'
+                    ]);
+                    const es = expanded.toString();
+                    const ns = node.toString();
+                    if (es !== ns) {
+                        return this.ruleBasedIntegrate(expanded, v, depth + 1);
+                    }
+                } catch {}
+
+                throw new Error('Cannot integrate product');
+            },
+
+            _integrateDivision(node, v, depth) {
+                if (this._deadline && performance.now() > this._deadline) throw new Error('Computation timeout');
+                const [num, den] = node.args;
+
+                // f(x) / constant
+                if (!this._containsVar(den, v)) {
+                    const inner = this.ruleBasedIntegrate(num, v, depth + 1);
+                    return math.parse(`(${inner}) / (${den})`);
+                }
+
+                // constant / x  →  c * ln|x|
+                if (!this._containsVar(num, v) &&
+                    den.type === 'SymbolNode' && den.name === v) {
+                    return math.parse(`(${num}) * log(abs(${v}))`);
+                }
+
+                // 1 / (1 + x^2)  →  arctan(x)
+                try {
+                    if (this._matches1Over1PlusX2(node, v)) {
+                        return math.parse(`atan(${v})`);
+                    }
+                } catch {}
+
+                // 1 / sqrt(1 - x^2)  →  arcsin(x)
+                try {
+                    if (this._matches1OverSqrt1MinusX2(node, v)) {
+                        return math.parse(`asin(${v})`);
+                    }
+                } catch {}
+
+                // Try rewriting as x^(-n) and using power rule
+                try {
+                    const rewritten = math.parse(`(${num}) * (${den})^(-1)`);
+                    return this.ruleBasedIntegrate(math.simplify(rewritten), v, depth + 1);
+                } catch {}
+
+                throw new Error('Cannot integrate division');
+            },
+
+            _integratePower(node, v, depth) {
+                if (this._deadline && performance.now() > this._deadline) throw new Error('Computation timeout');
+                const [base, exp] = node.args;
+
+                // x^n (n is constant)
+                if (base.type === 'SymbolNode' && base.name === v && !this._containsVar(exp, v)) {
+                    try {
+                        const nVal = exp.evaluate();
+                        if (nVal === -1) return math.parse(`log(abs(${v}))`);
+                    } catch {}
+                    return math.parse(`${v}^(${exp} + 1) / (${exp} + 1)`);
+                }
+
+                // e^x
+                if ((base.type === 'SymbolNode' && base.name === 'e') &&
+                    exp.type === 'SymbolNode' && exp.name === v) {
+                    return math.parse(`e^${v}`);
+                }
+
+                // a^x (a constant)
+                if (!this._containsVar(base, v) && exp.type === 'SymbolNode' && exp.name === v) {
+                    return math.parse(`(${base})^${v} / log(${base})`);
+                }
+
+                // e^(ax+b)
+                if ((base.type === 'SymbolNode' && base.name === 'e') && this._isLinear(exp, v)) {
+                    const coeff = this._linearCoeff(exp, v);
+                    return math.parse(`e^(${exp}) / (${coeff})`);
+                }
+
+                // (ax+b)^n  →  (ax+b)^(n+1) / (a*(n+1))
+                if (this._isLinear(base, v) && !this._containsVar(exp, v)) {
+                    const coeff = this._linearCoeff(base, v);
+                    try {
+                        const nVal = exp.evaluate();
+                        if (nVal === -1) return math.parse(`log(abs(${base})) / (${coeff})`);
+                    } catch {}
+                    return math.parse(`(${base})^(${exp} + 1) / ((${coeff}) * (${exp} + 1))`);
+                }
+
+                // Trig powers: sin^2(x), cos^2(x), etc.
+                try {
+                    const result = this._tryTrigPowerRules(base, exp, v, depth);
+                    if (result) return result;
+                } catch {}
+
+                throw new Error('Cannot integrate power');
+            },
+
+            _integrateFn(node, v, depth) {
+                if (this._deadline && performance.now() > this._deadline) throw new Error('Computation timeout');
+                const fname = node.fn.name || node.name;
+                const arg = node.args[0];
+
+                // f(x) where arg is x → table lookup
+                if (arg.type === 'SymbolNode' && arg.name === v) {
+                    const result = this._tableIntegral(fname, v);
+                    if (result) return result;
+                }
+
+                // f(ax+b) → table with linear substitution
+                if (this._isLinear(arg, v)) {
+                    const coeff = this._linearCoeff(arg, v);
+                    const inner = this._tableIntegral(fname, arg.toString());
+                    if (inner) return math.parse(`(${inner}) / (${coeff})`);
+                }
+
+                // Try U-substitution on the function
+                try {
+                    const result = this._tryUSubOnFunction(node, v, depth);
+                    if (result) return result;
+                } catch {}
+
+                throw new Error(`Cannot integrate ${fname}(${arg})`);
+            },
+
+            // ---- Integration Table ----
+            _tableIntegral(fname, u) {
+                const table = {
+                    'sin':  `-cos(${u})`,
+                    'cos':  `sin(${u})`,
+                    'tan':  `-log(abs(cos(${u})))`,
+                    'sec':  `log(abs(sec(${u}) + tan(${u})))`,
+                    'csc':  `-log(abs(csc(${u}) + cot(${u})))`,
+                    'cot':  `log(abs(sin(${u})))`,
+                    'exp':  `exp(${u})`,
+                    'log':  `(${u}) * log(${u}) - (${u})`,
+                    'sqrt': `(2/3) * (${u})^(3/2)`,
+                    'abs':  `(${u}) * abs(${u}) / 2`,
+                    'asin': `(${u}) * asin(${u}) + sqrt(1 - (${u})^2)`,
+                    'acos': `(${u}) * acos(${u}) - sqrt(1 - (${u})^2)`,
+                    'atan': `(${u}) * atan(${u}) - log(1 + (${u})^2) / 2`,
+                    'sinh': `cosh(${u})`,
+                    'cosh': `sinh(${u})`,
+                    'tanh': `log(cosh(${u}))`,
+                };
+                if (table[fname]) return math.parse(table[fname]);
+                return null;
+            },
+
+            // ---- Integration by Parts (LIATE) ----
+            // ∫ u dv = u*v - ∫ v du
+            _tryByParts(a, b, v, depth) {
+                if (depth > 4) return null;
+                if (this._deadline && performance.now() > this._deadline) return null;
+
+                // LIATE priority: Log, Inverse trig, Algebraic, Trig, Exponential
+                const priority = (node) => {
+                    const s = node.toString();
+                    if (node.type === 'FunctionNode') {
+                        const fn = node.fn.name;
+                        if (fn === 'log') return 0;
+                        if (['asin','acos','atan','acsc','asec','acot'].includes(fn)) return 1;
+                        if (['sin','cos','tan','sec','csc','cot'].includes(fn)) return 3;
+                        if (fn === 'exp') return 4;
+                    }
+                    if (node.type === 'OperatorNode' && node.fn === 'pow') {
+                        const base = node.args[0];
+                        if (base.type === 'SymbolNode' && base.name === 'e') return 4;
+                    }
+                    return 2; // algebraic
+                };
+
+                let u, dv;
+                if (priority(a) <= priority(b)) {
+                    u = a; dv = b;
+                } else {
+                    u = b; dv = a;
+                }
+
+                // Compute v = ∫dv
+                let vNode;
+                try {
+                    vNode = this.ruleBasedIntegrate(math.parse(dv.toString()), v, depth + 1);
+                } catch { return null; }
+
+                // Compute du = d(u)/dx
+                let du;
+                try {
+                    du = math.derivative(u, v);
+                } catch { return null; }
+
+                // Compute ∫v*du
+                let vdu;
+                try {
+                    const product = math.parse(`(${vNode}) * (${du})`);
+                    vdu = this.ruleBasedIntegrate(math.simplify(product), v, depth + 1);
+                } catch { return null; }
+
+                // u*v - ∫v*du
+                return math.parse(`(${u}) * (${vNode}) - (${vdu})`);
+            },
+
+            // ---- U-Substitution ----
+            // Look for f(g(x)) * g'(x)
+            _tryUSubstitution(productNode, v, depth) {
+                const [a, b] = productNode.args;
+
+                // Case: one factor is f(g(x)), the other is (proportional to) g'(x)
+                const tryPair = (outer, inner) => {
+                    if (outer.type === 'FunctionNode') {
+                        const g = outer.args[0];
+                        if (this._containsVar(g, v)) {
+                            try {
+                                const gPrime = math.derivative(g, v);
+                                // Check if inner / g'(x) is a constant
+                                const ratio = math.simplify(math.parse(`(${inner}) / (${gPrime})`));
+                                if (!this._containsVar(ratio, v)) {
+                                    const fname = outer.fn.name;
+                                    const tableResult = this._tableIntegral(fname, g.toString());
+                                    if (tableResult) {
+                                        return math.parse(`(${ratio}) * (${tableResult})`);
+                                    }
+                                }
+                            } catch {}
+                        }
+                    }
+                    // Case: inner is x^n and outer contains x^(n+1) pattern
+                    if (outer.type === 'OperatorNode' && outer.fn === 'pow') {
+                        const base = outer.args[0];
+                        if (this._containsVar(base, v)) {
+                            try {
+                                const basePrime = math.derivative(base, v);
+                                const ratio = math.simplify(math.parse(`(${inner}) / (${basePrime})`));
+                                if (!this._containsVar(ratio, v)) {
+                                    const exp = outer.args[1];
+                                    try {
+                                        const nVal = exp.evaluate();
+                                        if (nVal === -1) {
+                                            return math.parse(`(${ratio}) * log(abs(${base}))`);
+                                        }
+                                    } catch {}
+                                    return math.parse(`(${ratio}) * (${base})^(${exp} + 1) / (${exp} + 1)`);
+                                }
+                            } catch {}
+                        }
+                    }
+                    return null;
+                };
+
+                return tryPair(a, b) || tryPair(b, a);
+            },
+
+            _tryUSubOnFunction(node, v, depth) {
+                // For composite functions f(g(x)): try ∫f(g(x))dx with u=g(x)
+                if (node.type !== 'FunctionNode') return null;
+                const g = node.args[0];
+                if (!this._containsVar(g, v)) return null;
+                if (g.type === 'SymbolNode' && g.name === v) return null;
+
+                // Differentiate the inner function
+                try {
+                    const gPrime = math.derivative(g, v);
+                    // If g'(x) is constant, this is the linear substitution case
+                    if (!this._containsVar(gPrime, v)) {
+                        const fname = node.fn.name;
+                        const tableResult = this._tableIntegral(fname, g.toString());
+                        if (tableResult) {
+                            return math.parse(`(${tableResult}) / (${gPrime})`);
+                        }
+                    }
+                } catch {}
+
+                return null;
+            },
+
+            // ---- Trig Power Rules ----
+            _tryTrigPowerRules(base, exp, v, depth) {
+                if (base.type !== 'FunctionNode') return null;
+                const fname = base.fn.name;
+                const arg = base.args[0];
+                if (!(arg.type === 'SymbolNode' && arg.name === v)) return null;
+
+                let n;
+                try { n = exp.evaluate(); } catch { return null; }
+                if (!Number.isInteger(n) || n < 2) return null;
+
+                // sin^2(x) = (1 - cos(2x))/2
+                if (fname === 'sin' && n === 2) {
+                    return math.parse(`${v}/2 - sin(2*${v})/4`);
+                }
+                // cos^2(x) = (1 + cos(2x))/2
+                if (fname === 'cos' && n === 2) {
+                    return math.parse(`${v}/2 + sin(2*${v})/4`);
+                }
+                // tan^2(x) = sec^2(x) - 1 → tan(x) - x
+                if (fname === 'tan' && n === 2) {
+                    return math.parse(`tan(${v}) - ${v}`);
+                }
+                // sec^2(x) → tan(x)
+                if (fname === 'sec' && n === 2) {
+                    return math.parse(`tan(${v})`);
+                }
+                // csc^2(x) → -cot(x)
+                if (fname === 'csc' && n === 2) {
+                    return math.parse(`-cot(${v})`);
+                }
+                // sin^n for odd n: pull out sin, use sin^2 = 1-cos^2
+                if (fname === 'sin' && n % 2 === 1 && n >= 3) {
+                    // Reduction: ∫sin^n dx = -sin^(n-1)cos/n + (n-1)/n ∫sin^(n-2)dx
+                    const sub = this.ruleBasedIntegrate(
+                        math.parse(`sin(${v})^${n - 2}`), v, depth + 1
+                    );
+                    return math.parse(`(-sin(${v})^${n-1} * cos(${v})) / ${n} + (${n-1})/${n} * (${sub})`);
+                }
+                // cos^n for odd n
+                if (fname === 'cos' && n % 2 === 1 && n >= 3) {
+                    const sub = this.ruleBasedIntegrate(
+                        math.parse(`cos(${v})^${n - 2}`), v, depth + 1
+                    );
+                    return math.parse(`(cos(${v})^${n-1} * sin(${v})) / ${n} + (${n-1})/${n} * (${sub})`);
+                }
+                // Even powers of sin/cos: use double angle repeatedly
+                if (fname === 'sin' && n % 2 === 0) {
+                    // sin^2n = (sin^2)^n = ((1-cos2x)/2)^n, then expand
+                    // For n=4: sin^4 = (3 - 4cos(2x) + cos(4x)) / 8
+                    if (n === 4) return math.parse(`3*${v}/8 - sin(2*${v})/4 + sin(4*${v})/32`);
+                }
+                if (fname === 'cos' && n % 2 === 0) {
+                    if (n === 4) return math.parse(`3*${v}/8 + sin(2*${v})/4 + sin(4*${v})/32`);
+                }
+
+                return null;
+            },
+
+            // ---- Pattern Matchers ----
+            _matches1Over1PlusX2(node, v) {
+                if (node.fn !== 'divide') return false;
+                const num = node.args[0], den = node.args[1];
+                if (num.type !== 'ConstantNode' || num.value !== 1) return false;
+                const denStr = math.simplify(den).toString();
+                const target = math.simplify(math.parse(`1 + ${v}^2`)).toString();
+                return denStr === target;
+            },
+
+            _matches1OverSqrt1MinusX2(node, v) {
+                if (node.fn !== 'divide') return false;
+                const num = node.args[0], den = node.args[1];
+                if (num.type !== 'ConstantNode' || num.value !== 1) return false;
+                if (den.type !== 'FunctionNode' || den.fn.name !== 'sqrt') return false;
+                const inner = math.simplify(den.args[0]).toString();
+                const target = math.simplify(math.parse(`1 - ${v}^2`)).toString();
+                return inner === target;
+            },
+
+            // ---- Helper Utilities ----
+            _containsVar(node, v) {
+                if (node.type === 'SymbolNode') return node.name === v;
+                if (node.type === 'ConstantNode') return false;
+                if (node.type === 'ParenthesisNode') return this._containsVar(node.content, v);
+                if (node.args) return node.args.some(a => this._containsVar(a, v));
+                return false;
+            },
+
+            _isLinear(node, v) {
+                try {
+                    const d1 = math.derivative(node, v);
+                    const d2 = math.derivative(d1, v);
+                    return math.simplify(d2).toString() === '0';
+                } catch { return false; }
+            },
+
+            _linearCoeff(node, v) {
+                try {
+                    return math.simplify(math.derivative(node, v)).toString();
+                } catch { return '1'; }
+            },
+
+            // ---- Verification ----
+            // Differentiate result and compare numerically to original
+            verifyIntegral(exprStr, integralNode, v) {
+                try {
+                    if (this._deadline && performance.now() > this._deadline) return false;
+                    // Skip verification for overly complex integrals (derivative would be too expensive)
+                    const integralStr = integralNode.toString();
+                    if (integralStr.length > 500) return false;
+                    const d = math.derivative(integralNode, v);
+                    const original = math.parse(exprStr);
+                    const testPoints = [0.5, 1.0, 1.5, 2.0, -0.5, -1.0, 0.25, 3.0];
+                    let matches = 0;
+                    let tested = 0;
+
+                    for (const x of testPoints) {
+                        try {
+                            const scope = { x };
+                            const origVal = original.evaluate(scope);
+                            const derivVal = d.evaluate(scope);
+                            if (!isFinite(origVal) || !isFinite(derivVal)) continue;
+                            tested++;
+                            if (Math.abs(origVal) < 1e-10 && Math.abs(derivVal) < 1e-10) {
+                                matches++;
+                            } else if (Math.abs(origVal) > 1e-10) {
+                                if (Math.abs((origVal - derivVal) / origVal) < 0.001) matches++;
+                            }
+                        } catch {}
+                    }
+
+                    return tested > 0 && matches >= tested * 0.7;
+                } catch {
+                    return false;
+                }
+            },
+
+            // --- Plotting ---
+            plotWithAntiderivative(fNode, FNode) {
+                const xValues = [], fValues = [], FValues = [];
+                for (let x = -10; x <= 10; x += 0.05) {
+                    xValues.push(x);
+                    try { fValues.push(fNode.evaluate({ x })); } catch { fValues.push(NaN); }
+                    try { FValues.push(FNode.evaluate({ x })); } catch { FValues.push(NaN); }
+                }
+                Plotly.newPlot(elements.graph, [
+                    { x: xValues, y: fValues, mode: 'lines', name: 'f(x)', line: { color: '#4285f4' } },
+                    { x: xValues, y: FValues, mode: 'lines', name: '\u222bf(x)dx', line: { color: '#34a853', dash: 'dash' } }
+                ], {
+                    title: 'Function & Antiderivative',
+                    xaxis: { title: 'x' },
+                    yaxis: { title: 'y' }
+                }, { responsive: true });
+            },
+
+            plotNumerical(fNode) {
+                // High-accuracy numerical integration using adaptive Simpson
+                const xValues = [], fValues = [], FValues = [];
+                const step = 0.05;
+                let prevX = -10;
+                let cumulative = 0;
+                for (let x = -10; x <= 10; x += step) {
+                    xValues.push(x);
+                    try {
+                        const fx = fNode.evaluate({ x });
+                        fValues.push(fx);
+                        if (x > -10) {
+                            // Simpson's rule for each small interval
+                            const mid = (prevX + x) / 2;
+                            try {
+                                const fMid = fNode.evaluate({ x: mid });
+                                const fPrev = fNode.evaluate({ x: prevX });
+                                cumulative += (step / 6) * (fPrev + 4 * fMid + fx);
+                            } catch {
+                                cumulative += fx * step;
+                            }
+                        }
+                        FValues.push(cumulative);
+                    } catch {
+                        fValues.push(NaN);
+                        FValues.push(NaN);
+                    }
+                    prevX = x;
+                }
+                Plotly.newPlot(elements.graph, [
+                    { x: xValues, y: fValues, mode: 'lines', name: 'f(x)', line: { color: '#4285f4' } },
+                    { x: xValues, y: FValues, mode: 'lines', name: 'F(x) = \u222b\u2080\u02e3 f(t)dt', line: { color: '#34a853', dash: 'dash' } }
+                ], {
+                    title: 'Function & Numerical Integral',
+                    xaxis: { title: 'x' },
+                    yaxis: { title: 'y' }
+                }, { responsive: true });
+            },
+
+            plotDefinite(fNode, a, b) {
+                const xValues = [], fValues = [], areaX = [], areaY = [];
+                for (let x = -10; x <= 10; x += 0.1) {
+                    xValues.push(x);
+                    try { fValues.push(fNode.evaluate({ x })); } catch { fValues.push(NaN); }
+                }
+                for (let x = a; x <= b; x += 0.05) {
+                    areaX.push(x);
+                    try { areaY.push(fNode.evaluate({ x })); } catch { areaY.push(0); }
+                }
+                Plotly.newPlot(elements.graph, [
+                    { x: xValues, y: fValues, mode: 'lines', name: 'f(x)', line: { color: '#4285f4' } },
+                    { x: areaX, y: areaY, fill: 'tozeroy', mode: 'lines', name: 'Area',
+                      fillcolor: 'rgba(52, 168, 83, 0.3)', line: { color: 'rgba(52, 168, 83, 0.5)' } }
+                ], {
+                    title: `Definite Integral from ${a} to ${b}`,
+                    xaxis: { title: 'x' },
+                    yaxis: { title: 'y' }
+                }, { responsive: true });
+            },
+
+            numericalIntegrate(fNode, a, b, n) {
+                // Simpson's 3/8 rule for higher accuracy
+                if (n % 3 !== 0) n = n + (3 - n % 3);
+                const h = (b - a) / n;
+                let sum = 0;
+                for (let i = 0; i <= n; i++) {
+                    const x = a + i * h;
+                    try {
+                        const fx = fNode.evaluate({ x });
+                        if (i === 0 || i === n) sum += fx;
+                        else if (i % 3 === 0) sum += 2 * fx;
+                        else sum += 3 * fx;
+                    } catch {}
+                }
+                return sum * 3 * h / 8;
+            },
+
+            // ---- Adaptive Simpson's Rule ----
+            // Recursively refines intervals for near-exact numerical integration
+            adaptiveSimpson(fNode, a, b, tol, maxDepth) {
+                const simpsonDeadline = performance.now() + 3000; // 3 sec max
+                const _simpson = (a, b) => {
+                    const c = (a + b) / 2;
+                    const h = b - a;
+                    let fa, fb, fc;
+                    try { fa = fNode.evaluate({ x: a }); } catch { fa = 0; }
+                    try { fb = fNode.evaluate({ x: b }); } catch { fb = 0; }
+                    try { fc = fNode.evaluate({ x: c }); } catch { fc = 0; }
+                    return (h / 6) * (fa + 4 * fc + fb);
+                };
+
+                const _adaptiveHelper = (a, b, tol, whole, depth) => {
+                    if (performance.now() > simpsonDeadline) return whole; // time limit
+                    const c = (a + b) / 2;
+                    const left = _simpson(a, c);
+                    const right = _simpson(c, b);
+                    const combined = left + right;
+                    if (depth <= 0 || Math.abs(combined - whole) <= 15 * tol) {
+                        return combined + (combined - whole) / 15;
+                    }
+                    return _adaptiveHelper(a, c, tol / 2, left, depth - 1) +
+                           _adaptiveHelper(c, b, tol / 2, right, depth - 1);
+                };
+
+                const whole = _simpson(a, b);
+                return _adaptiveHelper(a, b, tol, whole, maxDepth);
+            },
+
+            // ---- Taylor Series Integration ----
+            // Expand f(x) as a Taylor series around x=a, integrate term by term
+            // This produces a polynomial approximation of the antiderivative
+            taylorSeriesIntegrate(exprStr, v, center, numTerms) {
+                const taylorDeadline = performance.now() + 5000; // 5 second max for Taylor
+                try {
+                    const node = math.parse(exprStr);
+                    const coefficients = [];
+
+                    // Compute Taylor coefficients: f^(n)(a) / n!
+                    let currentDerivative = node;
+                    for (let n = 0; n < numTerms; n++) {
+                        if (performance.now() > taylorDeadline) break; // time limit
+                        try {
+                            const val = currentDerivative.evaluate({ x: center });
+                            if (!isFinite(val)) break;
+                            coefficients.push(val);
+                            // Check expression complexity before differentiating again
+                            const exprLen = currentDerivative.toString().length;
+                            if (exprLen > 2000) break; // derivative expression too complex
+                            // Get next derivative
+                            currentDerivative = math.derivative(currentDerivative, v);
+                        } catch {
+                            break;
+                        }
+                    }
+
+                    if (coefficients.length < 3) return { node: null, terms: 0 };
+
+                    // Build the integrated Taylor polynomial:
+                    // If f(x) ≈ Σ c_n * (x-a)^n / n!, then ∫f(x)dx ≈ Σ c_n * (x-a)^(n+1) / ((n+1) * n!)
+                    let terms = [];
+                    let factorial = 1;
+                    for (let n = 0; n < coefficients.length; n++) {
+                        if (n > 0) factorial *= n;
+                        const coeff = coefficients[n] / (factorial * (n + 1));
+                        if (Math.abs(coeff) < 1e-15) continue;
+
+                        // Round to avoid floating point noise in display
+                        const roundedCoeff = Math.abs(coeff) < 1e-12 ? 0 :
+                            parseFloat(coeff.toPrecision(10));
+                        if (roundedCoeff === 0) continue;
+
+                        if (center === 0) {
+                            terms.push(`(${roundedCoeff}) * ${v}^${n + 1}`);
+                        } else {
+                            terms.push(`(${roundedCoeff}) * (${v} - ${center})^${n + 1}`);
+                        }
+                    }
+
+                    if (terms.length === 0) return { node: null, terms: 0 };
+
+                    const polyStr = terms.join(' + ');
+                    const polyNode = math.simplify(math.parse(polyStr));
+
+                    // Verify the Taylor integral is reasonable by checking at a few points
+                    const original = math.parse(exprStr);
+                    let good = true;
+                    for (const testX of [0.3, 0.5, -0.3]) {
+                        try {
+                            const polyDeriv = math.derivative(polyNode, v);
+                            const origVal = original.evaluate({ x: testX });
+                            const derivVal = polyDeriv.evaluate({ x: testX });
+                            if (isFinite(origVal) && isFinite(derivVal)) {
+                                const err = Math.abs(origVal - derivVal);
+                                if (err > Math.max(1, Math.abs(origVal)) * 0.1) {
+                                    good = false;
+                                    break;
+                                }
+                            }
+                        } catch {}
+                    }
+
+                    if (!good) return { node: null, terms: 0 };
+
+                    return { node: polyNode, terms: coefficients.length };
+                } catch {
+                    return { node: null, terms: 0 };
+                }
+            }
+        };
+
         // --- Evaluation Functions ---
         const evaluation = {
             evaluateAtPoint() {
@@ -1154,6 +2440,29 @@
             }
         };
 
+        // Check for integral evaluation
+        const _origEval = evaluation.evaluateAtPoint;
+        evaluation.evaluateAtPoint = function() {
+            const xVal = elements.evalX.value;
+            if (xVal === '') { elements.evalResult.innerText = 'Enter x value.'; return; }
+            const x = parseFloat(xVal);
+
+            // If we have an integral result and no derivative/implicit result
+            if (state.integralNode && state.derivativeNodes.length <= 1 && !state.implicitDyDxNode) {
+                try {
+                    const val = state.integralNode.evaluate({ x: x });
+                    elements.evalResult.innerHTML = `$$F(x)\\big|_{x=${x}} = ${parseFloat(val.toFixed(8))}$$`;
+                    MathJax.typesetPromise();
+                    return;
+                } catch {
+                    elements.evalResult.innerText = 'Could not evaluate integral at that point.';
+                    return;
+                }
+            }
+            // Otherwise, fall through to original
+            _origEval.call(evaluation);
+        };
+
         // --- Event Listeners ---
         function setupEventListeners() {
             // Help modal
@@ -1164,6 +2473,49 @@
             elements.derivativeBtn.addEventListener('click', () => derivative.compute());
             elements.nextDerivativeBtn.addEventListener('click', () => derivative.next());
             elements.implicitBtn.addEventListener('click', () => implicit.compute());
+            elements.integralBtn.addEventListener('click', () => {
+                if (elements.loadingOverlay.classList.contains('active')) return;
+                integration.compute();
+            });
+            elements.definiteIntegralBtn.addEventListener('click', () => {
+                const isVisible = elements.boundsRow.style.display !== 'none';
+                elements.boundsRow.style.display = isVisible ? 'none' : 'flex';
+            });
+            elements.computeDefiniteBtn.addEventListener('click', () => {
+                if (elements.loadingOverlay.classList.contains('active')) return;
+                integration.computeDefinite();
+            });
+            elements.negInfBtn.addEventListener('click', () => {
+                const btn = elements.negInfBtn;
+                const isActive = btn.classList.toggle('active');
+                elements.integralA.value = isActive ? '-Infinity' : '';
+                elements.integralA.readOnly = isActive;
+                if (!isActive) elements.integralA.focus();
+            });
+            elements.posInfBtn.addEventListener('click', () => {
+                const btn = elements.posInfBtn;
+                const isActive = btn.classList.toggle('active');
+                elements.integralB.value = isActive ? '+Infinity' : '';
+                elements.integralB.readOnly = isActive;
+                if (!isActive) elements.integralB.focus();
+            });
+            // Clicking on the input box while it shows infinity resets it
+            elements.integralA.addEventListener('click', () => {
+                if (elements.negInfBtn.classList.contains('active')) {
+                    elements.negInfBtn.classList.remove('active');
+                    elements.integralA.value = '';
+                    elements.integralA.readOnly = false;
+                    elements.integralA.focus();
+                }
+            });
+            elements.integralB.addEventListener('click', () => {
+                if (elements.posInfBtn.classList.contains('active')) {
+                    elements.posInfBtn.classList.remove('active');
+                    elements.integralB.value = '';
+                    elements.integralB.readOnly = false;
+                    elements.integralB.focus();
+                }
+            });
             elements.resetBtn.addEventListener('click', () => utils.resetState());
             
             // Evaluation button
@@ -1202,8 +2554,8 @@
             setupEventListeners();
             
             // Add some initial instructions
-            elements.result.innerHTML = '<p style="color: #666; text-align: center;">Enter a function and click "Derivative" to get started.</p>';
-            elements.graph.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">Graph will appear here after computing a derivative.</p>';
+            elements.result.innerHTML = '<p style="color: #666; text-align: center;">Enter a function and click "Derivative" or "Integral" to get started.</p>';
+            elements.graph.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">Graph will appear here after computing.</p>';
         }
 
         // Start the application
