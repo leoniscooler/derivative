@@ -92,7 +92,7 @@
             }
             
             .evaluate-section {
-                grid-column: 1 / span 2;
+                /* reserved */
             }
             
             .container {
@@ -207,9 +207,12 @@
         /* --- Output Areas --- */
         .output-area {
             font-size: 18px;
-            min-height: 50px;
             color: var(--text-color);
             word-wrap: break-word;
+        }
+
+        .output-area:not(:empty) {
+            min-height: 50px;
             padding: 15px;
             border-radius: 12px;
             background-color: #f7f9fc;
@@ -491,6 +494,127 @@
         }
 
         /* --- Loading Overlay --- */
+
+        /* --- Area Between Curves --- */
+        .area-curves-section {
+            width: 100%;
+        }
+
+        .func-inputs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .func-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .func-input-row .input-field {
+            flex: 1;
+        }
+
+        .func-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            min-width: 35px;
+            text-align: right;
+        }
+
+        .remove-func-btn {
+            background: #ea4335;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            padding: 0;
+            line-height: 1;
+        }
+
+        .remove-func-btn:hover {
+            background: #c5221f;
+            transform: scale(1.1);
+        }
+
+        .area-bounds-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .area-option-label {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        /* --- Euler's Method Panel --- */
+        .euler-panel-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .euler-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .euler-row label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .euler-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .euler-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .euler-table th, .euler-table td {
+            border: 1px solid #dadce0;
+            padding: 6px 10px;
+            text-align: center;
+        }
+
+        .euler-table th {
+            background-color: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+
+        .euler-table tr:nth-child(even) {
+            background-color: #f7f9fc;
+        }
+
         .loading-overlay {
             display: none;
             position: fixed;
@@ -620,6 +744,8 @@
                         <button class="btn" id="implicitBtn">Implicit dy/dx</button>
                         <button class="btn" id="integralBtn">Integral</button>
                         <button class="btn" id="definiteIntegralBtn">Definite ∫</button>
+                        <button class="btn" id="areaBtnToggle">Area ∫∫</button>
+                        <button class="btn" id="eulerBtnToggle">Euler's Method</button>
                         <button class="btn btn-success" id="resetBtn">Reset</button>
                     </div>
 
@@ -635,7 +761,74 @@
                         <button class="btn btn-small" id="computeDefiniteBtn">Compute</button>
                     </div>
 
+                    <!-- Area Between Curves (toggled by Area button) -->
+                    <div id="areaPanel" style="display: none; width: 100%;">
+                        <div class="func-inputs-list" id="funcInputsList">
+                            <div class="func-input-row">
+                                <span class="func-label">f(x)=</span>
+                                <input type="text" class="input-field area-func-input" placeholder="e.g. x^2">
+                            </div>
+                            <div class="func-input-row">
+                                <span class="func-label">g(x)=</span>
+                                <input type="text" class="input-field area-func-input" placeholder="e.g. x">
+                            </div>
+                        </div>
+                        <div class="btn-group" style="margin-top: 10px;">
+                            <button class="btn btn-small" id="addFuncBtn">+ Add Curve</button>
+                        </div>
+                        <div class="area-bounds-row">
+                            <span class="area-option-label">Bounds (optional):</span>
+                            <input type="text" id="areaBoundA" class="input-field" style="width:100px" placeholder="a">
+                            <span class="area-option-label">to</span>
+                            <input type="text" id="areaBoundB" class="input-field" style="width:100px" placeholder="b">
+                        </div>
+                        <div class="btn-group" style="margin-top: 10px;">
+                            <button class="btn" id="computeAreaBtn">Compute Area</button>
+                        </div>
+                        <div id="areaResult" class="output-area"></div>
+                    </div>
+
+                    <!-- Euler's Method (toggled by Euler button) -->
+                    <div id="eulerPanel" style="display: none; width: 100%;">
+                        <div class="euler-panel-fields">
+                            <div class="euler-row">
+                                <label>dy/dx =</label>
+                                <input type="text" id="eulerDyDx" class="input-field" style="flex:1" placeholder="e.g. x + y or 2*x*y">
+                            </div>
+                            <div class="euler-row">
+                                <label>x₀ =</label>
+                                <input type="text" id="eulerX0" class="input-field" style="width:80px" placeholder="0">
+                                <label>y₀ =</label>
+                                <input type="text" id="eulerY0" class="input-field" style="width:80px" placeholder="1">
+                            </div>
+                            <div class="euler-row">
+                                <label>Step h =</label>
+                                <input type="text" id="eulerH" class="input-field" style="width:80px" placeholder="0.1">
+                                <label>Target x =</label>
+                                <input type="text" id="eulerTarget" class="input-field" style="width:80px" placeholder="1">
+                            </div>
+                        </div>
+                        <div class="btn-group" style="margin-top: 10px;">
+                            <button class="btn" id="computeEulerBtn">Compute</button>
+                        </div>
+                        <div id="eulerResult" class="output-area"></div>
+                    </div>
+
                     <div id="result" class="output-area"></div>
+
+                    <!-- Evaluate at Point (toggled after computation) -->
+                    <div id="evaluateSection" style="display: none; width: 100%;">
+                        <div class="evaluate-container">
+                            <div class="evaluate-row">
+                                <input type="number" id="evalX" class="input-field input-half" 
+                                       placeholder="x value" step="any">
+                                <input type="number" id="evalY" class="input-field input-half" 
+                                       placeholder="y value" step="any">
+                                <button class="btn btn-small" id="evaluateBtn">Evaluate</button>
+                            </div>
+                            <div id="evalResult" class="eval-output"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -644,23 +837,6 @@
                 <div class="card">
                     <h2 class="card-title">Function Graph</h2>
                     <div id="graph"></div>
-                </div>
-            </div>
-
-            <!-- Evaluation Section -->
-            <div class="evaluate-section">
-                <div class="card">
-                    <h2 class="card-title">Evaluate at Point</h2>
-                    <div class="evaluate-container">
-                        <div class="evaluate-row">
-                            <input type="number" id="evalX" class="input-field input-half" 
-                                   placeholder="x value" step="any">
-                            <input type="number" id="evalY" class="input-field input-half" 
-                                   placeholder="y value" step="any">
-                            <button class="btn btn-small" id="evaluateBtn">Evaluate</button>
-                        </div>
-                        <div id="evalResult" class="eval-output"></div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -721,6 +897,22 @@
                 <li>For non-elementary integrals (e.g., sin(sin(cos(x)))), produces Taylor series polynomial approximations integrated term by term.</li>
                 <li>Results are verified by differentiation. Final fallback: adaptive Simpson's rule with near-exact numerical precision.</li>
             </ul>
+            <p><strong>Area Between Curves:</strong></p>
+            <ul>
+                <li>Enter 2 or more functions in the <strong>Area Between Curves</strong> section.</li>
+                <li>Click <strong>Compute Area</strong> to find the area of the region bounded between the curves.</li>
+                <li>Intersection points are found automatically. Optionally specify bounds to restrict the region.</li>
+                <li>Computes ∫|f(x) − g(x)| dx over each sub-interval between intersection points.</li>
+                <li>Click <strong>+ Add Curve</strong> to add more functions. Click <strong>×</strong> to remove one (minimum 2).</li>
+            </ul>
+            <p><strong>Euler's Method:</strong></p>
+            <ul>
+                <li>Click <strong>Euler's Method</strong> to open the panel.</li>
+                <li>Enter dy/dx = f(x, y), initial values x₀ and y₀, step size h, and target x.</li>
+                <li>Click <strong>Compute</strong> to see a step-by-step table of approximations.</li>
+                <li>The graph plots the Euler approximation curve alongside the slope field.</li>
+                <li>Useful for AP Calculus BC: numerically approximate solutions to differential equations.</li>
+            </ul>
             <p><strong>Using Math Symbols:</strong></p>
             <ul>
                 <li>Click any symbol button to insert it into the function input</li>
@@ -755,6 +947,7 @@
             nextDerivativeBtn: document.getElementById('nextDerivativeBtn'),
             implicitBtn: document.getElementById('implicitBtn'),
             evaluateBtn: document.getElementById('evaluateBtn'),
+            evaluateSection: document.getElementById('evaluateSection'),
             resetBtn: document.getElementById('resetBtn'),
             integralBtn: document.getElementById('integralBtn'),
             definiteIntegralBtn: document.getElementById('definiteIntegralBtn'),
@@ -768,7 +961,24 @@
             loadingOverlay: document.getElementById('loadingOverlay'),
             loadingBar: document.getElementById('loadingBar'),
             loadingStatus: document.getElementById('loadingStatus'),
-            loadingTitle: document.getElementById('loadingTitle')
+            loadingTitle: document.getElementById('loadingTitle'),
+            funcInputsList: document.getElementById('funcInputsList'),
+            addFuncBtn: document.getElementById('addFuncBtn'),
+            areaBoundA: document.getElementById('areaBoundA'),
+            areaBoundB: document.getElementById('areaBoundB'),
+            computeAreaBtn: document.getElementById('computeAreaBtn'),
+            areaResult: document.getElementById('areaResult'),
+            areaBtnToggle: document.getElementById('areaBtnToggle'),
+            areaPanel: document.getElementById('areaPanel'),
+            eulerBtnToggle: document.getElementById('eulerBtnToggle'),
+            eulerPanel: document.getElementById('eulerPanel'),
+            eulerDyDx: document.getElementById('eulerDyDx'),
+            eulerX0: document.getElementById('eulerX0'),
+            eulerY0: document.getElementById('eulerY0'),
+            eulerH: document.getElementById('eulerH'),
+            eulerTarget: document.getElementById('eulerTarget'),
+            computeEulerBtn: document.getElementById('computeEulerBtn'),
+            eulerResult: document.getElementById('eulerResult')
         };
 
         // --- Loading Indicator ---
@@ -874,10 +1084,36 @@
                 elements.negInfBtn.classList.remove('active');
                 elements.posInfBtn.classList.remove('active');
                 elements.boundsRow.style.display = 'none';
+                elements.areaPanel.style.display = 'none';
+                elements.eulerPanel.style.display = 'none';
+                elements.evaluateSection.style.display = 'none';
                 
                 // Clear graph
                 Plotly.purge(elements.graph);
                 elements.graph.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">Graph will appear here after computing.</p>';
+
+                // Reset area between curves
+                elements.areaResult.innerHTML = '';
+                elements.areaBoundA.value = '';
+                elements.areaBoundB.value = '';
+                // Reset function inputs to just 2
+                const rows = elements.funcInputsList.querySelectorAll('.func-input-row');
+                rows.forEach((row, i) => {
+                    if (i < 2) {
+                        row.querySelector('.area-func-input').value = '';
+                    } else {
+                        row.remove();
+                    }
+                });
+                areaBetweenCurves._updateLabels();
+
+                // Reset Euler's method
+                elements.eulerDyDx.value = '';
+                elements.eulerX0.value = '';
+                elements.eulerY0.value = '';
+                elements.eulerH.value = '';
+                elements.eulerTarget.value = '';
+                elements.eulerResult.innerHTML = '';
             },
 
             insertSymbol(symbol) {
@@ -982,6 +1218,7 @@
                 
                 elements.result.innerHTML = latexStr;
                 MathJax.typesetPromise();
+                elements.evaluateSection.style.display = '';
                 this.plotDerivatives();
             },
 
@@ -1201,6 +1438,7 @@
                     
                     elements.result.innerHTML = `$$\\displaystyle \\frac{dy}{dx} = ${tex}$$`;
                     MathJax.typesetPromise();
+                    elements.evaluateSection.style.display = '';
                     this.plotImplicit(Fnode);
                 } catch (err) {
                     elements.result.innerText = 'Error: ' + err.message;
@@ -1361,6 +1599,7 @@
                 } catch (err) {
                     elements.result.innerText = 'Error: ' + err.message;
                 } finally {
+                    elements.evaluateSection.style.display = '';
                     setTimeout(() => loading.hide(), 300);
                 }
             },
@@ -1490,6 +1729,7 @@
                 } catch (err) {
                     elements.result.innerText = 'Error: ' + err.message;
                 } finally {
+                    elements.evaluateSection.style.display = '';
                     setTimeout(() => loading.hide(), 300);
                 }
             },
@@ -2470,16 +2710,34 @@
             elements.closeHelp.addEventListener('click', modal.hide);
             
             // Derivative buttons
-            elements.derivativeBtn.addEventListener('click', () => derivative.compute());
-            elements.nextDerivativeBtn.addEventListener('click', () => derivative.next());
-            elements.implicitBtn.addEventListener('click', () => implicit.compute());
+            const _hidePanels = () => { elements.boundsRow.style.display = 'none'; elements.areaPanel.style.display = 'none'; elements.eulerPanel.style.display = 'none'; elements.evaluateSection.style.display = 'none'; };
+            const _clearOtherResults = (keep) => { if (keep !== 'result') elements.result.innerHTML = ''; if (keep !== 'area') elements.areaResult.innerHTML = ''; if (keep !== 'euler') elements.eulerResult.innerHTML = ''; elements.evalResult.innerHTML = ''; };
+            elements.derivativeBtn.addEventListener('click', () => { _hidePanels(); _clearOtherResults('result'); derivative.compute(); });
+            elements.nextDerivativeBtn.addEventListener('click', () => { _hidePanels(); _clearOtherResults('result'); derivative.next(); });
+            elements.implicitBtn.addEventListener('click', () => { _hidePanels(); _clearOtherResults('result'); implicit.compute(); });
             elements.integralBtn.addEventListener('click', () => {
                 if (elements.loadingOverlay.classList.contains('active')) return;
+                _hidePanels(); _clearOtherResults('result');
                 integration.compute();
             });
             elements.definiteIntegralBtn.addEventListener('click', () => {
                 const isVisible = elements.boundsRow.style.display !== 'none';
                 elements.boundsRow.style.display = isVisible ? 'none' : 'flex';
+                if (!isVisible) { elements.areaPanel.style.display = 'none'; elements.eulerPanel.style.display = 'none'; _clearOtherResults('result'); }
+            });
+            elements.areaBtnToggle.addEventListener('click', () => {
+                const isVisible = elements.areaPanel.style.display !== 'none';
+                elements.areaPanel.style.display = isVisible ? 'none' : 'block';
+                if (!isVisible) { elements.boundsRow.style.display = 'none'; elements.eulerPanel.style.display = 'none'; elements.evaluateSection.style.display = 'none'; _clearOtherResults('area'); }
+            });
+            elements.eulerBtnToggle.addEventListener('click', () => {
+                const isVisible = elements.eulerPanel.style.display !== 'none';
+                elements.eulerPanel.style.display = isVisible ? 'none' : 'block';
+                if (!isVisible) { elements.boundsRow.style.display = 'none'; elements.areaPanel.style.display = 'none'; elements.evaluateSection.style.display = 'none'; _clearOtherResults('euler'); }
+            });
+            elements.computeEulerBtn.addEventListener('click', () => {
+                if (elements.loadingOverlay.classList.contains('active')) return;
+                eulerMethod.compute();
             });
             elements.computeDefiniteBtn.addEventListener('click', () => {
                 if (elements.loadingOverlay.classList.contains('active')) return;
@@ -2517,7 +2775,24 @@
                 }
             });
             elements.resetBtn.addEventListener('click', () => utils.resetState());
-            
+
+            // Area Between Curves
+            elements.addFuncBtn.addEventListener('click', () => areaBetweenCurves.addFunction());
+            elements.computeAreaBtn.addEventListener('click', () => {
+                if (elements.loadingOverlay.classList.contains('active')) return;
+                areaBetweenCurves.compute();
+            });
+            // Delegate remove button clicks
+            elements.funcInputsList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-func-btn')) {
+                    const row = e.target.closest('.func-input-row');
+                    if (elements.funcInputsList.querySelectorAll('.func-input-row').length > 2) {
+                        row.remove();
+                        areaBetweenCurves._updateLabels();
+                    }
+                }
+            });
+
             // Evaluation button
             elements.evaluateBtn.addEventListener('click', () => evaluation.evaluateAtPoint());
             
@@ -2548,6 +2823,495 @@
                 }
             });
         }
+
+        // --- Area Between Curves (AP Calc BC Unit 8) ---
+        const areaBetweenCurves = {
+            _funcNames: 'fghpqrstuvw',
+
+            _updateLabels() {
+                const rows = elements.funcInputsList.querySelectorAll('.func-input-row');
+                rows.forEach((row, i) => {
+                    const label = row.querySelector('.func-label');
+                    const name = i < this._funcNames.length ? this._funcNames[i] : 'y' + (i + 1);
+                    label.textContent = name + '(x)=';
+                    // Show remove button only if more than 2 functions
+                    let removeBtn = row.querySelector('.remove-func-btn');
+                    if (rows.length > 2) {
+                        if (!removeBtn) {
+                            removeBtn = document.createElement('button');
+                            removeBtn.className = 'remove-func-btn';
+                            removeBtn.textContent = '\u00d7';
+                            removeBtn.title = 'Remove this curve';
+                            row.appendChild(removeBtn);
+                        }
+                    } else if (removeBtn) {
+                        removeBtn.remove();
+                    }
+                });
+            },
+
+            addFunction() {
+                const rows = elements.funcInputsList.querySelectorAll('.func-input-row');
+                const idx = rows.length;
+                const name = idx < this._funcNames.length ? this._funcNames[idx] : 'y' + (idx + 1);
+                const row = document.createElement('div');
+                row.className = 'func-input-row';
+                row.innerHTML = `<span class="func-label">${name}(x)=</span><input type="text" class="input-field area-func-input" placeholder="e.g. sin(x)"><button class="remove-func-btn" title="Remove this curve">\u00d7</button>`;
+                elements.funcInputsList.appendChild(row);
+                this._updateLabels();
+                row.querySelector('.area-func-input').focus();
+            },
+
+            async compute() {
+                const inputs = Array.from(elements.funcInputsList.querySelectorAll('.area-func-input'));
+                const rawExprs = inputs.map(el => el.value.trim());
+
+                if (rawExprs.some(e => !e)) {
+                    elements.areaResult.innerText = 'Please enter all functions.';
+                    return;
+                }
+                if (rawExprs.length < 2) {
+                    elements.areaResult.innerText = 'Need at least 2 functions.';
+                    return;
+                }
+
+                loading.show('Computing Area Between Curves...');
+                await yieldToBrowser();
+
+                try {
+                    const exprs = rawExprs.map(e => utils.preprocessInput(e));
+                    const nodes = exprs.map(e => math.parse(e));
+
+                    // Parse optional bounds
+                    const aStr = elements.areaBoundA.value.trim();
+                    const bStr = elements.areaBoundB.value.trim();
+                    let userA = aStr ? parseFloat(aStr) : null;
+                    let userB = bStr ? parseFloat(bStr) : null;
+                    if (userA !== null && isNaN(userA)) userA = null;
+                    if (userB !== null && isNaN(userB)) userB = null;
+
+                    loading.update(15, 'Finding intersection points...');
+                    await yieldToBrowser();
+
+                    // Find all pairwise intersections
+                    const allIntersections = new Set();
+                    for (let i = 0; i < nodes.length; i++) {
+                        for (let j = i + 1; j < nodes.length; j++) {
+                            const pts = this._findIntersections(nodes[i], nodes[j], userA, userB);
+                            pts.forEach(p => allIntersections.add(p));
+                        }
+                    }
+
+                    let sortedPts = Array.from(allIntersections).sort((a, b) => a - b);
+
+                    // Determine the integration range
+                    let rangeA, rangeB;
+                    if (userA !== null && userB !== null) {
+                        rangeA = userA;
+                        rangeB = userB;
+                    } else if (sortedPts.length >= 2) {
+                        rangeA = userA !== null ? userA : sortedPts[0];
+                        rangeB = userB !== null ? userB : sortedPts[sortedPts.length - 1];
+                    } else {
+                        // No intersections found / only 1: try a default range
+                        rangeA = userA !== null ? userA : -5;
+                        rangeB = userB !== null ? userB : 5;
+                    }
+
+                    // Filter intersection points to within range
+                    sortedPts = sortedPts.filter(p => p > rangeA + 1e-10 && p < rangeB - 1e-10);
+
+                    // Build sub-intervals
+                    const breakpoints = [rangeA, ...sortedPts, rangeB];
+
+                    loading.update(40, 'Computing area over sub-intervals...');
+                    await yieldToBrowser();
+
+                    // For each sub-interval, compute the area:
+                    // With N curves, the "enclosed area" is ∫(max(fi) - min(fi)) dx
+                    let totalArea = 0;
+                    const intervalAreas = [];
+                    for (let k = 0; k < breakpoints.length - 1; k++) {
+                        const a = breakpoints[k];
+                        const b = breakpoints[k + 1];
+                        if (b - a < 1e-12) continue;
+
+                        const area = this._integrateMaxMinusMin(nodes, a, b);
+                        intervalAreas.push({ a, b, area });
+                        totalArea += area;
+                    }
+
+                    loading.update(80, 'Rendering results...');
+                    await yieldToBrowser();
+
+                    // Build result display
+                    const totalRounded = parseFloat(totalArea.toFixed(8));
+                    const funcLabels = rawExprs.map((e, i) => {
+                        const name = i < this._funcNames.length ? this._funcNames[i] : 'y' + (i + 1);
+                        return name + '(x) = ' + e;
+                    });
+
+                    let html = `<p style="font-size: 14px; color: #555; margin-bottom: 8px;">${funcLabels.join('<br>')}</p>`;
+                    html += `$$\\text{Area} = \\int_{${parseFloat(rangeA.toFixed(4))}}^{${parseFloat(rangeB.toFixed(4))}} \\left[\\max\\{f_i(x)\\} - \\min\\{f_i(x)\\}\\right] dx = ${totalRounded}$$`;
+
+                    if (sortedPts.length > 0) {
+                        const intPts = sortedPts.map(p => parseFloat(p.toFixed(6))).join(', ');
+                        html += `<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Intersection points: x = ${intPts}</span>`;
+                    }
+                    if (intervalAreas.length > 1) {
+                        const details = intervalAreas.map(ia =>
+                            `[${parseFloat(ia.a.toFixed(4))}, ${parseFloat(ia.b.toFixed(4))}]: ${parseFloat(ia.area.toFixed(8))}`
+                        ).join(' + ');
+                        html += `<span style="font-size: 12px; color: #888; display: block; margin-top: 2px;">Sub-intervals: ${details}</span>`;
+                    }
+
+                    elements.areaResult.innerHTML = html;
+                    MathJax.typesetPromise();
+
+                    loading.update(90, 'Plotting...');
+                    await yieldToBrowser();
+                    this._plotArea(nodes, rawExprs, breakpoints, rangeA, rangeB);
+                    loading.update(100, 'Done!');
+                } catch (err) {
+                    elements.areaResult.innerText = 'Error: ' + err.message;
+                } finally {
+                    setTimeout(() => loading.hide(), 300);
+                }
+            },
+
+            // Numerically find intersections of two parsed nodes via sign changes
+            _findIntersections(nodeA, nodeB, userA, userB) {
+                const lo = userA !== null ? userA : -20;
+                const hi = userB !== null ? userB : 20;
+                const step = 0.05;
+                const results = [];
+
+                let prevDiff = null;
+                let prevX = lo;
+                for (let x = lo; x <= hi; x += step) {
+                    let diff;
+                    try {
+                        diff = nodeA.evaluate({ x }) - nodeB.evaluate({ x });
+                    } catch { diff = NaN; }
+
+                    if (prevDiff !== null && isFinite(prevDiff) && isFinite(diff)) {
+                        if (prevDiff * diff < 0) {
+                            // Sign change: bisect to find root
+                            const root = this._bisect(nodeA, nodeB, prevX, x, 50);
+                            if (root !== null) results.push(root);
+                        } else if (Math.abs(diff) < 1e-10) {
+                            results.push(x);
+                        }
+                    }
+                    prevDiff = diff;
+                    prevX = x;
+                }
+
+                // Deduplicate nearby points
+                const deduped = [];
+                for (const p of results) {
+                    if (deduped.length === 0 || Math.abs(p - deduped[deduped.length - 1]) > 1e-6) {
+                        deduped.push(p);
+                    }
+                }
+                return deduped;
+            },
+
+            _bisect(nodeA, nodeB, lo, hi, maxIter) {
+                for (let i = 0; i < maxIter; i++) {
+                    const mid = (lo + hi) / 2;
+                    let fLo, fMid;
+                    try {
+                        fLo = nodeA.evaluate({ x: lo }) - nodeB.evaluate({ x: lo });
+                        fMid = nodeA.evaluate({ x: mid }) - nodeB.evaluate({ x: mid });
+                    } catch { return (lo + hi) / 2; }
+
+                    if (Math.abs(fMid) < 1e-12) return mid;
+                    if (fLo * fMid < 0) hi = mid;
+                    else lo = mid;
+                }
+                return (lo + hi) / 2;
+            },
+
+            // Integrate max(fi(x)) - min(fi(x)) over [a,b] using adaptive Simpson
+            _integrateMaxMinusMin(nodes, a, b) {
+                const deadline = performance.now() + 3000;
+                const evalDiff = (x) => {
+                    const vals = [];
+                    for (const node of nodes) {
+                        try {
+                            const v = node.evaluate({ x });
+                            if (isFinite(v)) vals.push(v);
+                        } catch {}
+                    }
+                    if (vals.length < 2) return 0;
+                    return Math.max(...vals) - Math.min(...vals);
+                };
+
+                const simpson = (a, b) => {
+                    const c = (a + b) / 2;
+                    const h = b - a;
+                    return (h / 6) * (evalDiff(a) + 4 * evalDiff(c) + evalDiff(b));
+                };
+
+                const adaptiveHelper = (a, b, tol, whole, depth) => {
+                    if (performance.now() > deadline) return whole;
+                    const c = (a + b) / 2;
+                    const left = simpson(a, c);
+                    const right = simpson(c, b);
+                    const combined = left + right;
+                    if (depth <= 0 || Math.abs(combined - whole) <= 15 * tol) {
+                        return combined + (combined - whole) / 15;
+                    }
+                    return adaptiveHelper(a, c, tol / 2, left, depth - 1) +
+                           adaptiveHelper(c, b, tol / 2, right, depth - 1);
+                };
+
+                const whole = simpson(a, b);
+                return adaptiveHelper(a, b, 1e-8, whole, 15);
+            },
+
+            _plotArea(nodes, rawExprs, breakpoints, rangeA, rangeB) {
+                const colors = ['#4285f4', '#ea4335', '#fbbc05', '#34a853', '#9c27b0', '#ff5722', '#009688'];
+                const margin = (rangeB - rangeA) * 0.15;
+                const plotLo = rangeA - margin;
+                const plotHi = rangeB + margin;
+                const step = (plotHi - plotLo) / 800;
+                const traces = [];
+
+                // Plot each curve
+                for (let i = 0; i < nodes.length; i++) {
+                    const xVals = [], yVals = [];
+                    for (let x = plotLo; x <= plotHi; x += step) {
+                        xVals.push(x);
+                        try { yVals.push(nodes[i].evaluate({ x })); }
+                        catch { yVals.push(NaN); }
+                    }
+                    const name = i < this._funcNames.length ? this._funcNames[i] + '(x)' : 'y' + (i + 1) + '(x)';
+                    traces.push({
+                        x: xVals, y: yVals, mode: 'lines',
+                        name: name + ' = ' + rawExprs[i],
+                        line: { color: colors[i % colors.length], width: 2 }
+                    });
+                }
+
+                // Shade the area between max and min for each sub-interval
+                for (let k = 0; k < breakpoints.length - 1; k++) {
+                    const a = breakpoints[k];
+                    const b = breakpoints[k + 1];
+                    const xs = [], yMaxs = [], yMins = [];
+                    const subStep = (b - a) / 200;
+                    for (let x = a; x <= b + subStep / 2; x += subStep) {
+                        const vals = [];
+                        for (const node of nodes) {
+                            try {
+                                const v = node.evaluate({ x });
+                                if (isFinite(v)) vals.push(v);
+                            } catch {}
+                        }
+                        if (vals.length >= 2) {
+                            xs.push(x);
+                            yMaxs.push(Math.max(...vals));
+                            yMins.push(Math.min(...vals));
+                        }
+                    }
+                    // Upper edge (forward)
+                    traces.push({
+                        x: [...xs, ...xs.slice().reverse()],
+                        y: [...yMaxs, ...yMins.slice().reverse()],
+                        fill: 'toself',
+                        fillcolor: 'rgba(66, 133, 244, 0.15)',
+                        line: { color: 'transparent' },
+                        mode: 'lines',
+                        name: k === 0 ? 'Bounded area' : '',
+                        showlegend: k === 0,
+                        hoverinfo: 'skip'
+                    });
+                }
+
+                Plotly.newPlot(elements.graph, traces, {
+                    title: 'Area Between Curves',
+                    xaxis: { title: 'x' },
+                    yaxis: { title: 'y' }
+                }, { responsive: true });
+            }
+        };
+
+        // --- Euler's Method ---
+        const eulerMethod = {
+            async compute() {
+                const dydxStr = elements.eulerDyDx.value.trim();
+                const x0 = parseFloat(elements.eulerX0.value);
+                const y0 = parseFloat(elements.eulerY0.value);
+                const h = parseFloat(elements.eulerH.value);
+                const xTarget = parseFloat(elements.eulerTarget.value);
+
+                if (!dydxStr) { elements.eulerResult.innerText = 'Enter dy/dx = f(x, y).'; return; }
+                if (isNaN(x0) || isNaN(y0)) { elements.eulerResult.innerText = 'Enter initial values x\u2080 and y\u2080.'; return; }
+                if (isNaN(h) || h === 0) { elements.eulerResult.innerText = 'Enter a non-zero step size h.'; return; }
+                if (isNaN(xTarget)) { elements.eulerResult.innerText = 'Enter a target x value.'; return; }
+                if ((xTarget - x0) / h < 0) { elements.eulerResult.innerText = 'Step size h must move x\u2080 toward target x (check sign of h).'; return; }
+
+                const processed = utils.preprocessInput(dydxStr);
+                let fCompiled;
+                try {
+                    const fNode = math.parse(processed);
+                    fCompiled = fNode.compile();
+                } catch (err) {
+                    elements.eulerResult.innerText = 'Error parsing dy/dx: ' + err.message;
+                    return;
+                }
+
+                loading.show("Computing Euler's Method...");
+                loading.update(5, 'Stepping through iterations...');
+                await yieldToBrowser();
+
+                // Pre-allocate typed arrays for speed
+                const n = Math.round(Math.abs((xTarget - x0) / h));
+                const maxSteps = Math.min(n, 10000);
+                const stepNums = new Array(maxSteps + 1);
+                const xArr = new Float64Array(maxSteps + 1);
+                const yArr = new Float64Array(maxSteps + 1);
+                const slopeArr = new Float64Array(maxSteps + 1);
+                const slopeValid = new Uint8Array(maxSteps + 1); // 1 = valid
+
+                let x = x0, y = y0;
+                xArr[0] = x; yArr[0] = y; stepNums[0] = 0;
+                let actualSteps = maxSteps;
+
+                const scope = { x: 0, y: 0 };
+                const yieldInterval = Math.max(100, Math.floor(maxSteps / 50));
+
+                for (let i = 0; i < maxSteps; i++) {
+                    scope.x = x; scope.y = y;
+                    let slope;
+                    try {
+                        slope = fCompiled.evaluate(scope);
+                    } catch {
+                        slope = NaN;
+                    }
+                    slopeArr[i] = slope;
+                    slopeValid[i] = isFinite(slope) ? 1 : 0;
+
+                    if (!isFinite(slope)) {
+                        actualSteps = i;
+                        break;
+                    }
+
+                    y = y + h * slope;
+                    x = x + h;
+                    x = parseFloat(x.toPrecision(12));
+                    xArr[i + 1] = x; yArr[i + 1] = y; stepNums[i + 1] = i + 1;
+
+                    // Yield periodically to keep UI responsive
+                    if (i % yieldInterval === 0 && i > 0) {
+                        loading.update(5 + Math.floor((i / maxSteps) * 55), `Step ${i} / ${maxSteps}`);
+                        await yieldToBrowser();
+                    }
+                }
+
+                // Compute slope at last point
+                const last = actualSteps;
+                scope.x = xArr[last]; scope.y = yArr[last];
+                try { slopeArr[last] = fCompiled.evaluate(scope); slopeValid[last] = isFinite(slopeArr[last]) ? 1 : 0; } catch { slopeArr[last] = NaN; slopeValid[last] = 0; }
+
+                loading.update(65, 'Building results table...');
+                await yieldToBrowser();
+
+                // Build result
+                const totalRows = actualSteps + 1;
+                const finalX = xArr[actualSteps];
+                const finalY = yArr[actualSteps];
+                const parts = [`$$y(${parseFloat(finalX.toFixed(6))}) \\approx ${parseFloat(finalY.toFixed(8))}$$`];
+                parts.push(`<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Euler's method: ${actualSteps} steps, h = ${h}</span>`);
+
+                // Step table – build with array join for speed
+                parts.push('<div class="euler-table-container"><table class="euler-table">');
+                parts.push('<thead><tr><th>n</th><th>x\u2099</th><th>y\u2099</th><th>dy/dx</th><th>\u0394y = h \u00b7 f(x,y)</th></tr></thead><tbody>');
+                for (let i = 0; i < totalRows; i++) {
+                    const xStr = isFinite(xArr[i]) ? parseFloat(xArr[i].toFixed(6)) : xArr[i];
+                    const yStr = isFinite(yArr[i]) ? parseFloat(yArr[i].toFixed(8)) : yArr[i];
+                    const sv = slopeValid[i];
+                    const slopeStr = sv ? parseFloat(slopeArr[i].toFixed(8)) : (i < actualSteps ? 'NaN' : '');
+                    const dyStr = sv ? parseFloat((h * slopeArr[i]).toFixed(8)) : '';
+                    parts.push(`<tr><td>${i}</td><td>${xStr}</td><td>${yStr}</td><td>${slopeStr}</td><td>${dyStr}</td></tr>`);
+                    if (i % 500 === 0 && i > 0) {
+                        loading.update(65 + Math.floor((i / totalRows) * 15), `Rendering row ${i}...`);
+                        await yieldToBrowser();
+                    }
+                }
+                parts.push('</tbody></table></div>');
+
+                loading.update(82, 'Rendering...');
+                await yieldToBrowser();
+
+                elements.eulerResult.innerHTML = parts.join('');
+                MathJax.typesetPromise();
+
+                loading.update(88, 'Drawing graph...');
+                await yieldToBrowser();
+
+                // Plot
+                this._plot(fCompiled, xArr, yArr, actualSteps, x0, xTarget);
+
+                loading.update(100, 'Done!');
+                await yieldToBrowser();
+                loading.hide();
+            },
+
+            _plot(fCompiled, xArr, yArr, actualSteps, x0, xTarget) {
+                const traces = [];
+
+                // Euler approximation curve – slice typed arrays
+                const xs = Array.from(xArr.subarray(0, actualSteps + 1));
+                const ys = Array.from(yArr.subarray(0, actualSteps + 1));
+                traces.push({
+                    x: xs, y: ys, mode: 'lines+markers',
+                    name: 'Euler approximation',
+                    line: { color: '#4285f4', width: 2 },
+                    marker: { size: 4 }
+                });
+
+                // Slope field – single trace with null separators (much faster)
+                const finiteYs = ys.filter(isFinite);
+                const xMin = Math.min(x0, xTarget) - 1;
+                const xMax = Math.max(x0, xTarget) + 1;
+                const yMin = Math.min(...finiteYs) - 2;
+                const yMax = Math.max(...finiteYs) + 2;
+                const gridStep = Math.max((xMax - xMin) / 20, 0.25);
+                const arrowLen = gridStep * 0.35;
+
+                const sfX = [], sfY = [];
+                const scope = { x: 0, y: 0 };
+                for (let gx = xMin; gx <= xMax; gx += gridStep) {
+                    for (let gy = yMin; gy <= yMax; gy += gridStep) {
+                        scope.x = gx; scope.y = gy;
+                        let slope;
+                        try { slope = fCompiled.evaluate(scope); } catch { continue; }
+                        if (!isFinite(slope)) continue;
+                        const angle = Math.atan(slope);
+                        const dx = arrowLen * Math.cos(angle);
+                        const dy = arrowLen * Math.sin(angle);
+                        sfX.push(gx - dx, gx + dx, null);
+                        sfY.push(gy - dy, gy + dy, null);
+                    }
+                }
+                if (sfX.length) {
+                    traces.push({
+                        x: sfX, y: sfY, mode: 'lines',
+                        line: { color: 'rgba(150,150,150,0.5)', width: 1 },
+                        showlegend: false, hoverinfo: 'skip',
+                        connectgaps: false
+                    });
+                }
+
+                Plotly.newPlot(elements.graph, traces, {
+                    title: "Euler's Method Approximation",
+                    xaxis: { title: 'x', range: [xMin, xMax] },
+                    yaxis: { title: 'y', range: [yMin, yMax] }
+                }, { responsive: true });
+            }
+        };
 
         // --- Initialize Application ---
         function init() {
