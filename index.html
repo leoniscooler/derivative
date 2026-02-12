@@ -335,74 +335,81 @@
             font-weight: bold;
         }
 
-        /* --- Math Symbol Panel --- */
-        .symbol-panel {
+        /* --- Desmos-style Keyboard --- */
+        .keyboard-toggle {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .symbol-category {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .symbol-category-title {
-            font-size: 14px;
-            color: var(--text-light);
-            text-align: left;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .symbol-row {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            align-items: center;
             justify-content: center;
-        }
-
-        .symbol-btn {
-            background-color: #f1f3f4;
-            color: var(--text-color);
+            gap: 6px;
+            background: none;
             border: 1px solid #dadce0;
-            font-size: 14px;
-            padding: 8px 12px;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 13px;
+            color: var(--text-light);
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background 0.15s;
+        }
+        .keyboard-toggle:hover { background: #f1f3f4; }
+        .keyboard-toggle .kb-icon {
+            font-size: 16px;
+            line-height: 1;
         }
 
-        .symbol-btn:hover {
-            background-color: #e8eaed;
-            transform: translateY(-1px);
-        }
-
-        /* --- Function Reference --- */
-        .function-reference {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
+        .desmos-keyboard {
+            display: none;
+            margin-top: 8px;
+            background: #e2e6ea;
             border-radius: 10px;
-            text-align: left;
+            padding: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
         }
+        .desmos-keyboard.open { display: block; }
 
-        .function-reference h3 {
-            margin-top: 0;
-            color: var(--text-color);
-            font-size: 1.2rem;
-        }
-
-        .function-grid {
+        .kb-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
         }
 
-        .function-item {
-            padding: 5px;
-            font-family: monospace;
-            font-size: 0.9rem;
+        .kb-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            color: #333;
+            height: 40px;
+            cursor: pointer;
+            transition: background 0.1s, box-shadow 0.1s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            user-select: none;
+            padding: 0 2px;
         }
+        .kb-btn:hover { background: #ebedf0; }
+        .kb-btn:active { background: #d5d8dc; box-shadow: none; }
+        .kb-btn.kb-fn { font-size: 13px; font-weight: 500; color: #1a73e8; }
+        .kb-btn.kb-op { font-size: 18px; font-weight: 600; color: #555; }
+        .kb-btn.kb-wide { grid-column: span 2; font-size: 13px; }
+        .kb-btn.kb-accent { background: #dce8fc; color: #1a73e8; }
+        .kb-btn.kb-accent:hover { background: #c5d8f8; }
+        .kb-btn.kb-del { background: #fce4e4; color: #d93025; font-size: 13px; font-weight: 600; }
+        .kb-btn.kb-del:hover { background: #f8cfcf; }
+
+        .kb-row-label {
+            grid-column: 1 / -1;
+            font-size: 11px;
+            color: #888;
+            padding: 4px 4px 0;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .kb-row-label:first-child { padding-top: 0; }
 
         /* --- Responsive --- */
         @media (max-width: 768px) {
@@ -467,9 +474,12 @@
                 padding: 12px;
             }
             
-            .symbol-btn {
-                font-size: 12px;
-                padding: 6px 10px;
+            .kb-btn {
+                font-size: 13px;
+                height: 36px;
+            }
+            .kb-grid {
+                grid-template-columns: repeat(6, 1fr);
             }
         }
 
@@ -694,51 +704,64 @@
                     <input type="text" id="funcInput" class="input-field input-full" 
                            placeholder="Type a function, e.g., arcsin(x), leon, or x^2 + y^2 = 25">
 
-                    <!-- Math Symbol Panel -->
-                    <div class="symbol-panel">
-                        <div class="symbol-category">
-                            <div class="symbol-category-title">Basic Math</div>
-                            <div class="symbol-row">
-                                <button class="btn symbol-btn" data-symbol="+">+</button>
-                                <button class="btn symbol-btn" data-symbol="-">-</button>
-                                <button class="btn symbol-btn" data-symbol="*">×</button>
-                                <button class="btn symbol-btn" data-symbol="/">÷</button>
-                                <button class="btn symbol-btn" data-symbol="^">^</button>
-                                <button class="btn symbol-btn" data-symbol="(">(</button>
-                                <button class="btn symbol-btn" data-symbol=")">)</button>
-                            </div>
-                        </div>
-                        
-                        <div class="symbol-category">
-                            <div class="symbol-category-title">Constants</div>
-                            <div class="symbol-row">
-                                <button class="btn symbol-btn" data-symbol="pi">π</button>
-                                <button class="btn symbol-btn" data-symbol="e">e</button>
-                            </div>
-                        </div>
-                        
-                        <div class="symbol-category">
-                            <div class="symbol-category-title">Trig Functions</div>
-                            <div class="symbol-row">
-                                <button class="btn symbol-btn" data-symbol="sin(">sin</button>
-                                <button class="btn symbol-btn" data-symbol="cos(">cos</button>
-                                <button class="btn symbol-btn" data-symbol="tan(">tan</button>
-                                <button class="btn symbol-btn" data-symbol="arc">arc</button>
-                            </div>
-                        </div>
-                        
-                        <div class="symbol-category">
-                            <div class="symbol-category-title">Other Functions</div>
-                            <div class="symbol-row">
-                                <button class="btn symbol-btn" data-symbol="ln(">ln</button>
-                                <button class="btn symbol-btn" data-symbol="log(">log</button>
-                                <button class="btn symbol-btn" data-symbol="sqrt(">√</button>
-                                <button class="btn symbol-btn" data-symbol="abs(">|x|</button>
-                            </div>
+                    <!-- Desmos-style Keyboard -->
+                    <button class="keyboard-toggle" id="keyboardToggle">
+                        <span class="kb-icon">⌨</span> Keyboard
+                    </button>
+                    <div class="desmos-keyboard" id="desmosKeyboard">
+                        <div class="kb-grid">
+                            <div class="kb-row-label">Numbers</div>
+                            <button class="kb-btn kb-op" data-symbol="1">1</button>
+                            <button class="kb-btn kb-op" data-symbol="2">2</button>
+                            <button class="kb-btn kb-op" data-symbol="3">3</button>
+                            <button class="kb-btn kb-op" data-symbol="4">4</button>
+                            <button class="kb-btn kb-op" data-symbol="5">5</button>
+                            <button class="kb-btn kb-op" data-symbol="6">6</button>
+                            <button class="kb-btn kb-op" data-symbol="7">7</button>
+                            <button class="kb-btn kb-op" data-symbol="8">8</button>
+                            <button class="kb-btn kb-op" data-symbol="9">9</button>
+                            <button class="kb-btn kb-op" data-symbol="0">0</button>
+                            <button class="kb-btn kb-op" data-symbol=".">.</button>
+                            <button class="kb-btn kb-op" data-symbol="=">=</button>
+                            <button class="kb-btn kb-accent" data-symbol="x">x</button>
+                            <button class="kb-btn kb-accent" data-symbol="y">y</button>
+                            <button class="kb-btn kb-op" data-symbol=",">,</button>
+                            <button class="kb-btn kb-del" data-symbol="DEL">⌫</button>
+
+                            <div class="kb-row-label">Operators</div>
+                            <button class="kb-btn kb-op" data-symbol="+">+</button>
+                            <button class="kb-btn kb-op" data-symbol="-">−</button>
+                            <button class="kb-btn kb-op" data-symbol="*">×</button>
+                            <button class="kb-btn kb-op" data-symbol="/">÷</button>
+                            <button class="kb-btn kb-op" data-symbol="^" title="power">x<sup style='font-size:10px'>y</sup></button>
+                            <button class="kb-btn kb-op" data-symbol="(">(</button>
+                            <button class="kb-btn kb-op" data-symbol=")">)</button>
+                            <button class="kb-btn kb-op" data-symbol="abs(">|</button>
+
+                            <div class="kb-row-label">Functions</div>
+                            <button class="kb-btn kb-fn" data-symbol="sin(">sin</button>
+                            <button class="kb-btn kb-fn" data-symbol="cos(">cos</button>
+                            <button class="kb-btn kb-fn" data-symbol="tan(">tan</button>
+                            <button class="kb-btn kb-fn" data-symbol="arcsin(">sin⁻¹</button>
+                            <button class="kb-btn kb-fn" data-symbol="arccos(">cos⁻¹</button>
+                            <button class="kb-btn kb-fn" data-symbol="arctan(">tan⁻¹</button>
+                            <button class="kb-btn kb-fn" data-symbol="csc(">csc</button>
+                            <button class="kb-btn kb-fn" data-symbol="sec(">sec</button>
+
+                            <div class="kb-row-label">More</div>
+                            <button class="kb-btn kb-fn" data-symbol="ln(">ln</button>
+                            <button class="kb-btn kb-fn" data-symbol="log(">log</button>
+                            <button class="kb-btn kb-fn" data-symbol="sqrt(">√</button>
+                            <button class="kb-btn kb-fn" data-symbol="abs(">|x|</button>
+                            <button class="kb-btn kb-fn" data-symbol="e^">eˣ</button>
+                            <button class="kb-btn" data-symbol="pi">π</button>
+                            <button class="kb-btn" data-symbol="e">e</button>
+                            <button class="kb-btn" data-symbol="Infinity">∞</button>
                         </div>
                     </div>
 
                     <div class="btn-group">
+                        <button class="btn" id="calculateBtn">Calculate</button>
                         <button class="btn" id="derivativeBtn">Derivative</button>
                         <button class="btn" id="nextDerivativeBtn">Next Derivative</button>
                         <button class="btn" id="implicitBtn">Implicit dy/dx</button>
@@ -841,23 +864,9 @@
             </div>
         </div>
 
-        <!-- Function Reference -->
-        <div class="card">
-            <h2 class="card-title">Function Reference</h2>
-            <div class="function-reference">
-                <h3>Supported Functions</h3>
-                <div class="function-grid">
-                    <div class="function-item">sin(x), cos(x), tan(x)</div>
-                    <div class="function-item">arcsin(x), arccos(x), arctan(x)</div>
-                    <div class="function-item">ln(x), log(x), exp(x)</div>
-                    <div class="function-item">sqrt(x), x^n, e^x</div>
-                    <div class="function-item">π (pi), e (Euler's number)</div>
-                    <div class="function-item">+, -, ×, ÷, ^, (, )</div>
-                </div>
-                <h3 style="margin-top: 15px;">Integration Support</h3>
-                <p style="font-size: 0.9rem; color: #555;">Multi-strategy symbolic integration: Algebrite CAS → Nerdamer CAS → custom rule engine (integration by parts, u-substitution, trig identities, power reduction, integral table). For non-elementary integrals like sin(sin(cos(x))), automatically produces Taylor series polynomial approximations. All symbolic results verified by differentiation. Final fallback: adaptive Simpson's rule numerical integration with near-exact precision.</p>
-            </div>
-        </div>
+        <footer style="text-align: center; padding: 20px 0 10px; color: #999; font-size: 13px;">
+            <a href="https://leoniscool.com" target="_blank" style="color: #999; text-decoration: none;">leoniscool.com</a>
+        </footer>
     </div>
 
     <!-- Loading Overlay -->
@@ -949,6 +958,7 @@
             evaluateBtn: document.getElementById('evaluateBtn'),
             evaluateSection: document.getElementById('evaluateSection'),
             resetBtn: document.getElementById('resetBtn'),
+            calculateBtn: document.getElementById('calculateBtn'),
             integralBtn: document.getElementById('integralBtn'),
             definiteIntegralBtn: document.getElementById('definiteIntegralBtn'),
             boundsRow: document.getElementById('boundsRow'),
@@ -957,7 +967,9 @@
             computeDefiniteBtn: document.getElementById('computeDefiniteBtn'),
             negInfBtn: document.getElementById('negInfBtn'),
             posInfBtn: document.getElementById('posInfBtn'),
-            symbolBtns: document.querySelectorAll('.symbol-btn'),
+            symbolBtns: document.querySelectorAll('.kb-btn[data-symbol]'),
+            keyboardToggle: document.getElementById('keyboardToggle'),
+            desmosKeyboard: document.getElementById('desmosKeyboard'),
             loadingOverlay: document.getElementById('loadingOverlay'),
             loadingBar: document.getElementById('loadingBar'),
             loadingStatus: document.getElementById('loadingStatus'),
@@ -1024,7 +1036,8 @@
                 
                 // Other replacements
                 input = input.replace(/ln\(/g, 'log(');
-                input = input.replace(/e\^/g, 'exp');
+                input = input.replace(/e\^(\()/g, 'exp$1');
+                input = input.replace(/e\^([0-9])/g, 'exp($1)');
                 
                 return input;
             },
@@ -1121,27 +1134,9 @@
                 const startPos = input.selectionStart;
                 const endPos = input.selectionEnd;
                 
-                // Special handling for "arc" button
-                if (symbol === 'arc') {
-                    // If there's already text selected, wrap it with arc and function
-                    if (startPos !== endPos) {
-                        const selectedText = input.value.substring(startPos, endPos);
-                        input.value = input.value.substring(0, startPos) + 'arc' + selectedText + '(' + input.value.substring(endPos);
-                        input.selectionStart = startPos + 3 + selectedText.length + 1;
-                        input.selectionEnd = input.selectionStart;
-                    } else {
-                        // Just insert "arc" and let user type the function
-                        input.value = input.value.substring(0, startPos) + 'arc' + input.value.substring(endPos);
-                        input.selectionStart = startPos + 3;
-                        input.selectionEnd = input.selectionStart;
-                    }
-                } else {
-                    // For other symbols, just insert them
-                    input.value = input.value.substring(0, startPos) + symbol + input.value.substring(endPos);
-                    input.selectionStart = startPos + symbol.length;
-                    input.selectionEnd = input.selectionStart;
-                }
-                
+                input.value = input.value.substring(0, startPos) + symbol + input.value.substring(endPos);
+                input.selectionStart = startPos + symbol.length;
+                input.selectionEnd = input.selectionStart;
                 input.focus();
             }
         };
@@ -2713,6 +2708,31 @@
             const _hidePanels = () => { elements.boundsRow.style.display = 'none'; elements.areaPanel.style.display = 'none'; elements.eulerPanel.style.display = 'none'; elements.evaluateSection.style.display = 'none'; };
             const _clearOtherResults = (keep) => { if (keep !== 'result') elements.result.innerHTML = ''; if (keep !== 'area') elements.areaResult.innerHTML = ''; if (keep !== 'euler') elements.eulerResult.innerHTML = ''; elements.evalResult.innerHTML = ''; };
             elements.derivativeBtn.addEventListener('click', () => { _hidePanels(); _clearOtherResults('result'); derivative.compute(); });
+            elements.calculateBtn.addEventListener('click', () => {
+                _hidePanels(); _clearOtherResults('result');
+                const input = elements.funcInput.value.trim();
+                if (!input) { elements.result.innerText = 'Enter an expression to calculate.'; return; }
+                try {
+                    const processed = utils.preprocessInput(input);
+                    const result = math.evaluate(processed);
+                    let display;
+                    if (typeof result === 'number') {
+                        // Round away floating-point noise (e.g. sin(pi) → 0 instead of 1.2e-16)
+                        const rounded = Math.round(result * 1e10) / 1e10;
+                        display = rounded;
+                    } else {
+                        display = result;
+                    }
+                    elements.result.innerHTML = `$$${input.replace(/\*/g, '\\cdot ')} = ${display}$$<span style="font-size: 12px; color: #888; display: block; margin-top: 4px;">Trig functions use radians</span>`;
+                    MathJax.typesetPromise();
+                } catch (err) {
+                    if (err.message && err.message.includes('Undefined symbol')) {
+                        elements.result.innerText = 'Error: expression contains variables. Use numbers only for Calculate, or use Derivative/Integral for expressions with x.';
+                    } else {
+                        elements.result.innerText = 'Error: ' + err.message;
+                    }
+                }
+            });
             elements.nextDerivativeBtn.addEventListener('click', () => { _hidePanels(); _clearOtherResults('result'); derivative.next(); });
             elements.implicitBtn.addEventListener('click', () => { _hidePanels(); _clearOtherResults('result'); implicit.compute(); });
             elements.integralBtn.addEventListener('click', () => {
@@ -2796,10 +2816,26 @@
             // Evaluation button
             elements.evaluateBtn.addEventListener('click', () => evaluation.evaluateAtPoint());
             
+            // Keyboard toggle
+            elements.keyboardToggle.addEventListener('click', () => {
+                elements.desmosKeyboard.classList.toggle('open');
+            });
+
             // Symbol buttons
             elements.symbolBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const symbol = btn.getAttribute('data-symbol');
+                    if (symbol === 'DEL') {
+                        // Backspace behaviour
+                        const input = elements.funcInput;
+                        const pos = input.selectionStart;
+                        if (pos > 0) {
+                            input.value = input.value.substring(0, pos - 1) + input.value.substring(pos);
+                            input.selectionStart = input.selectionEnd = pos - 1;
+                        }
+                        input.focus();
+                        return;
+                    }
                     utils.insertSymbol(symbol);
                 });
             });
